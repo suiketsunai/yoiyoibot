@@ -1,0 +1,21 @@
+[DEFAULT]
+
+[log]
+# see logging levels
+level = "DEBUG"
+# see formatting settings
+form = "%(asctime)s > %(name)s [%(levelname)s]: %(message)s"
+
+[log.file]
+# enable logging to file
+enable = true
+# see logging levels
+level = "DEBUG"
+# see formatting settings
+form = "%(asctime)s > %(name)s [%(levelname)s]: %(message)s"
+# date format
+date = "%Y-%m-%d.%H-%M-%S"
+# folder path
+path = "log"
+# prefix for log file
+pref = "log."
