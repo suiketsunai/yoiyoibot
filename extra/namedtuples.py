@@ -9,3 +9,16 @@ Link = namedtuple(
         "id",
     ],
 )
+
+TikTokVideo = namedtuple(
+    "TikTokVideo",
+    [
+        "id",
+        "link",
+        "link_hd",
+        "size",
+        "size_hd",
+        "thumb_0",
+        "thumb_1",
+    ],
+)

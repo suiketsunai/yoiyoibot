@@ -1,6 +1,3 @@
-# namedtuples
-from extra.namedtuples import Link
-
 # link types
 class LinkType:
     types = (
@@ -55,7 +52,7 @@ link_dict = {
             )
             (?P<id>\d+)
         """,
-        "link": "m.tiktok.com/v/{id}",
+        "link": "https://m.tiktok.com/v/{id}",
         "type": LinkType.TIKTOK,
     },
     "vtiktok": {
@@ -66,7 +63,7 @@ link_dict = {
             )
             (?P<id>[\w]+)
         """,
-        "link": "{pre}.tiktok.com/{id}",
+        "link": "https://{pre}.tiktok.com/{id}",
         "type": LinkType.TIKTOK,
     },
     "instagram": {
@@ -77,7 +74,7 @@ link_dict = {
         )
         (?P<id>[\w\-]+)
         """,
-        "link": "instagram.com/p/{id}",
+        "link": "https://instagram.com/p/{id}",
         "type": LinkType.INSTAGRAM,
     },
 }

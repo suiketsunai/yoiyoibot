@@ -18,6 +18,12 @@ from telegram.ext import Updater
 # import link types and other info
 from extra import *
 
+# import namedtuples
+from extra.namedtuples import Link
+
+# import tiktok api
+from extra.tiktok import get_tiktok_links
+
 # current timestamp & this file directory
 date_run = datetime.now()
 file_dir = Path(__file__).parent
