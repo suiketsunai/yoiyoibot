@@ -18,6 +18,7 @@ pixivpy = "*"
 pillow = "*"
 python-magic = "*"
 python-ffmpeg = "*"
+setuptools = "*"
 
 [dev-packages]
 black = "*"
