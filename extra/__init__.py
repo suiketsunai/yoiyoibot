@@ -7,6 +7,17 @@ class LinkType:
         INSTAGRAM,
     ) = range(4)
 
+    names = [
+        "twitter",
+        "pixiv",
+        "tiktok",
+        "instagram",
+    ]
+
+    @classmethod
+    def getType(cls, value: int):
+        return cls.names[value]
+
     @classmethod
     def validate(cls, value: int):
         return value in cls.types

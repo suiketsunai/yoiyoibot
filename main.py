@@ -5,6 +5,7 @@ import logging
 
 from pathlib import Path
 from datetime import datetime
+from functools import partial
 
 # working with env
 from dotenv import load_dotenv
@@ -12,8 +13,26 @@ from dotenv import load_dotenv
 # reading setings
 import tomli
 
+# telegram core bot api
+from telegram import (
+    Update,
+    InlineQueryResultArticle,
+    InlineQueryResultVideo,
+    InputTextMessageContent as in_text,
+)
+
 # telegram core bot api extension
-from telegram.ext import Updater
+from telegram.ext import (
+    Updater,
+    CallbackContext,
+    InlineQueryHandler,
+)
+
+# bad request exception
+from telegram.error import BadRequest
+
+# excape markdown
+from telegram.utils.helpers import escape_markdown
 
 # import link types and other info
 from extra import *
@@ -83,6 +102,9 @@ def setup_logging():
 # telegram bot helpers
 ################################################################################
 
+# escaping markdown v2
+esc = partial(escape_markdown, version=2)
+
 
 def formatter(query: str) -> list[Link]:
     """Exctract and format links in text
@@ -107,6 +129,65 @@ def formatter(query: str) -> list[Link]:
 
 
 ################################################################################
+# telegram bot
+################################################################################
+
+
+def inliner(update: Update, context: CallbackContext) -> None:
+    """Answers to inline input
+
+    Args:
+        update (Update): telegram update object
+        context (CallbackContext): telegram context object
+    """
+    if not (links := formatter(update.inline_query.query)):
+        log.info("Inline: No query.")
+        return
+    results = []
+    for in_id, in_link in enumerate(links, 1):
+        data = {
+            "id": str(in_id),
+            "title": f"#{in_id}: {LinkType.getType(in_link.type)} link",
+        }
+        # send video if tiktok
+        if in_link.type == LinkType.TIKTOK:
+            if video := get_tiktok_links(in_link.link):
+                # check size
+                if video.size < 20 << 20:
+                    data.update(
+                        {
+                            "video_url": video.link,
+                            "mime_type": "video/mp4",
+                            "thumb_url": video.thumb_1,
+                        }
+                    )
+                    try:
+                        results.append(InlineQueryResultVideo(**data))
+                        continue
+                    # if telegram couldn't get file
+                    except BadRequest:
+                        text = "Telegram couldn't get the video."
+                # if file is too big
+                else:
+                    text = "File is too big, send link to bot."
+            # if there is no video
+            else:
+                text = "This tiktok can't be found or downloaded."
+        # send link if anything else
+        else:
+            text = in_link.link
+        # add to results
+        results.append(
+            InlineQueryResultArticle(
+                **data,
+                description=text,
+                input_message_content=in_text(text),
+            )
+        )
+    context.bot.answer_inline_query(update.inline_query.id, results)
+
+
+################################################################################
 # main body
 ################################################################################
 
@@ -125,6 +206,9 @@ def main() -> None:
         },
     )
     dispatcher = updater.dispatcher
+
+    # add inline mode
+    dispatcher.add_handler(InlineQueryHandler(inliner, run_async=True))
 
     # start bot
     updater.start_polling()
