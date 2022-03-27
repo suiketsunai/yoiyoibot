@@ -518,8 +518,13 @@ def echo(update: Update, context: CallbackContext) -> None:
 
     with Session(engine) as session:
         if not (user := session.get(User, mes.chat_id)):
-            send_error(update, "The bot doesn\\'t know you\\! Send /start\\.")
-            return
+            user = User(
+                id=update.effective_chat.id,
+                full_name=update.effective_chat.full_name,
+                nick_name=update.effective_chat.username,
+            )
+            session.add(user)
+            session.commit()
         log.debug(user)
 
     for link in formatter(text):
