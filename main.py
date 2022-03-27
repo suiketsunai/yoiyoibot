@@ -113,6 +113,12 @@ def setup_logging():
 # telegram bot helpers
 ################################################################################
 
+# helper dictionary
+_switch = {
+    True: "enabled",
+    False: "disabled",
+}
+
 # escaping markdown v2
 esc = partial(escape_markdown, version=2)
 
@@ -196,6 +202,24 @@ def formatter(query: str) -> list[Link]:
     return response
 
 
+def toggler(update: Update, attr: str) -> bool:
+    """Toggle state between True and False
+
+    Args:
+        update (Update): current update
+        attr (str): attribute to change
+
+    Returns:
+        bool: new state
+    """
+    with Session(engine) as s:
+        u = s.get(User, update.effective_chat.id)
+        state = getattr(u, attr)
+        setattr(u, attr, not state)
+        s.commit()
+        return not state
+
+
 ################################################################################
 # telegram bot
 ################################################################################
@@ -218,6 +242,34 @@ def command_start(update: Update, _) -> None:
         text=f"Yo\\~, {update.effective_user.mention_markdown_v2()}\\!\n"
         "I'm *Yoi Yoi* chan\\! 🎉\n"
         "Call for \\/help if in need\\!",
+    )
+
+
+def command_instagram_hd(update: Update, _) -> None:
+    """Enables/Disables Instagram HD mode"""
+    notify(update, command="/command_instagram_hd")
+    send_reply(
+        update, f"instagram HD mode is *{_switch[toggler(update, 'in_orig')]}*"
+    )
+
+    # hd quality for twitter
+
+
+def command_twitter_hd(update: Update, _) -> None:
+    """Enables/Disables Twitter HD mode"""
+    notify(update, command="/command_twitter_hd")
+    send_reply(
+        update, f"twitter HD mode is *{_switch[toggler(update, 'tw_orig')]}*"
+    )
+
+    # hd quality for tiktok
+
+
+def command_tiktok_hd(update: Update, _) -> None:
+    """Enables/Disables TikTok HD mode"""
+    notify(update, command="/command_tiktok_hd")
+    send_reply(
+        update, f"tiktok HD mode is *{_switch[toggler(update, 'tt_orig')]}*"
     )
 
 
@@ -297,6 +349,15 @@ def main() -> None:
 
     # hd quality for instagram
     dispatcher.add_handler(CommandHandler("start", command_start))
+
+    # hd quality for instagram
+    dispatcher.add_handler(CommandHandler("instagram_hd", command_instagram_hd))
+
+    # hd quality for twitter
+    dispatcher.add_handler(CommandHandler("twitter_hd", command_twitter_hd))
+
+    # hd quality for tiktok
+    dispatcher.add_handler(CommandHandler("tiktok_hd", command_tiktok_hd))
 
     # add inline mode
     dispatcher.add_handler(InlineQueryHandler(inliner, run_async=True))
