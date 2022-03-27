@@ -13,6 +13,8 @@ sqlalchemy = "*"
 tweepy = "*"
 ffmpeg-python = "*"
 psycopg2 = "*"
+sqlalchemy-repr = "*"
+alembic = "*"
 
 [dev-packages]
 black = "*"
