@@ -19,6 +19,7 @@ from telegram import (
     InlineQueryResultArticle,
     InlineQueryResultVideo,
     InputTextMessageContent as in_text,
+    Message,
 )
 
 # telegram core bot api extension
@@ -26,6 +27,7 @@ from telegram.ext import (
     Updater,
     CallbackContext,
     InlineQueryHandler,
+    CommandHandler,
 )
 
 # bad request exception
@@ -33,6 +35,15 @@ from telegram.error import BadRequest
 
 # excape markdown
 from telegram.utils.helpers import escape_markdown
+
+# working with database
+from sqlalchemy.orm import Session
+
+# import engine
+from db import engine
+
+# import database
+from db.models import User
 
 # import link types and other info
 from extra import *
@@ -106,6 +117,29 @@ def setup_logging():
 esc = partial(escape_markdown, version=2)
 
 
+def notify(update: Update, *, command: str = None, func: str = None) -> None:
+    """Log that something hapened
+
+    Args:
+        update (Update): current update
+        command (str, optional): called command. Defaults to None.
+    """
+    if command:
+        log.info(
+            "%s command was called by %s [%s].",
+            command,
+            update.effective_user.full_name,
+            update.effective_user.id,
+        )
+    if func:
+        log.info(
+            "%s function was called by %s [%s].",
+            func,
+            update.effective_user.full_name,
+            update.effective_user.id,
+        )
+
+
 def formatter(query: str) -> list[Link]:
     """Exctract and format links in text
 
@@ -131,6 +165,26 @@ def formatter(query: str) -> list[Link]:
 ################################################################################
 # telegram bot
 ################################################################################
+
+
+def command_start(update: Update, _) -> None:
+    """Start the bot"""
+    notify(update, command="/start")
+    with Session(engine) as s:
+        if not s.get(User, update.effective_chat.id):
+            s.add(
+                User(
+                    id=update.effective_chat.id,
+                    full_name=update.effective_chat.full_name,
+                    nick_name=update.effective_chat.username,
+                )
+            )
+            s.commit()
+    update.effective_message.reply_markdown_v2(
+        text=f"Yo\\~, {update.effective_user.mention_markdown_v2()}\\!\n"
+        "I'm *Yoi Yoi* chan\\! 🎉\n"
+        "Call for \\/help if in need\\!",
+    )
 
 
 def inliner(update: Update, context: CallbackContext) -> None:
@@ -206,6 +260,9 @@ def main() -> None:
         },
     )
     dispatcher = updater.dispatcher
+
+    # hd quality for instagram
+    dispatcher.add_handler(CommandHandler("start", command_start))
 
     # add inline mode
     dispatcher.add_handler(InlineQueryHandler(inliner, run_async=True))
