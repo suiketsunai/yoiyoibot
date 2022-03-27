@@ -89,6 +89,9 @@ def main() -> None:
     )
     dispatcher = updater.dispatcher
 
+    # start bot
+    updater.start_polling()
+
     # stop bot
     updater.idle()
 
