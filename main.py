@@ -27,6 +27,7 @@ from telegram import (
     Update,
     InlineQueryResultArticle,
     InlineQueryResultVideo,
+    InputMediaPhoto,
     InputTextMessageContent as in_text,
     Message,
     ChatAction,
@@ -68,6 +69,9 @@ from extra.namedtuples import Link
 
 # import tiktok api
 from extra.tiktok import get_tiktok_links
+
+# import twitter api
+from extra.twitter import get_twitter_links
 
 # current timestamp & this file directory
 date_run = datetime.now()
@@ -348,8 +352,48 @@ def inliner(update: Update, context: CallbackContext) -> None:
 ################################################################################
 
 
-def send_twitter():
-    return False
+def send_twitter(
+    update: Update,
+    context: CallbackContext,
+    link: Link,
+    user: User,
+):
+    if media := get_twitter_links(link.id):
+        log.debug("Twitter media info: %s.", media)
+        if media.media == "photo":
+            group = []
+            for photo in media.links:
+                update.message.chat.send_action(ChatAction.UPLOAD_PHOTO)
+                log.debug("Link: %s.", photo)
+                log.debug("Downloading...")
+                file = requests.get(
+                    url=photo,
+                    headers=fake_headers,
+                    allow_redirects=True,
+                )
+                log.debug("Adding content to collection...")
+                group.append(InputMediaPhoto(file.content))
+            log.debug("Finished adding to collection.")
+            log.debug("Changing caption to '%s'.", link.link)
+            group[0].caption = link.link
+            log.debug("Sending media group...")
+            context.bot.send_media_group(
+                reply_to_message_id=update.effective_message.message_id,
+                chat_id=update.effective_message.chat_id,
+                media=group,
+            )
+        if user.tw_orig or media.media != "photo":
+            for media_link in media.links:
+                context.bot.send_document(
+                    reply_to_message_id=update.effective_message.message_id,
+                    chat_id=update.effective_message.chat_id,
+                    caption=link.link,
+                    document=media_link,
+                )
+        return
+    else:
+        text = "This tweet content can't be found or downloaded."
+    send_error(update, esc(text))
 
 
 def send_tiktok(
@@ -439,7 +483,7 @@ def echo(update: Update, context: CallbackContext) -> None:
             case LinkType.TIKTOK:
                 send_tiktok(update, context, link, user)
             case LinkType.TWITTER:
-                send_twitter()
+                send_twitter(update, context, link, user)
             case _:
                 send_reply(update, esc(link.link))
 
