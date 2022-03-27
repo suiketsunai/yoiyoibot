@@ -15,7 +15,6 @@ ffmpeg-python = "*"
 psycopg2 = "*"
 sqlalchemy-repr = "*"
 alembic = "*"
-python-magic-bin = "*"
 
 [dev-packages]
 black = "*"
