@@ -13,6 +13,15 @@ from dotenv import load_dotenv
 # reading setings
 import tomli
 
+# http requests
+import requests
+
+# file extension check
+import magic
+
+# convert video files
+import ffmpeg
+
 # telegram core bot api
 from telegram import (
     Update,
@@ -20,6 +29,7 @@ from telegram import (
     InlineQueryResultVideo,
     InputTextMessageContent as in_text,
     Message,
+    ChatAction,
 )
 
 # telegram core bot api extension
@@ -49,6 +59,9 @@ from db.models import User
 
 # import link types and other info
 from extra import *
+
+# import fake headers
+from extra.helper import fake_headers
 
 # import namedtuples
 from extra.namedtuples import Link
@@ -339,8 +352,59 @@ def send_twitter():
     return False
 
 
-def send_tiktok():
-    return False
+def send_tiktok(
+    update: Update,
+    context: CallbackContext,
+    link: Link,
+    user: User,
+):
+    if video := get_tiktok_links(link.link):
+        # check size
+        data = {}
+        if video.size < 50 << 20:
+            if user.tt_orig and video.size_hd < 50 << 20:
+                data["video"] = video.link_hd
+            else:
+                data["video"] = video.link
+            # notify user
+            update.message.chat.send_action(action=ChatAction.UPLOAD_VIDEO)
+            # download
+            vid = requests.get(
+                url=data["video"],
+                headers=fake_headers,
+                allow_redirects=True,
+            )
+            file = file_dir / f"{video.id}-{update.effective_message.chat_id}"
+            # save
+            file.write_bytes(vid.content)
+            # check extension
+            file_ext = magic.from_file(str(file))
+            log.info(f"File extension: {file_ext}")
+            # convert if needed
+            if "mp4" not in file_ext.lower():
+                mp4 = file_dir / f"{video.id}.mp4"
+                log.info("Converting...")
+                ffmpeg.input(str(file)).output(str(mp4)).run()
+                data["video"] = mp4.read_bytes()
+                mp4.unlink()
+            else:
+                data["video"] = file.read_bytes()
+            # upload
+            context.bot.send_video(
+                reply_to_message_id=update.effective_message.message_id,
+                chat_id=update.effective_message.chat_id,
+                **data,
+            )
+            # delete
+            file.unlink()
+            return
+        # if file is too big
+        else:
+            text = "File is too big."
+    # if there is no video
+    else:
+        text = "This tiktok can't be found or downloaded."
+    send_error(update, esc(text))
 
 
 def send_instagram():
