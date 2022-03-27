@@ -1,5 +1,6 @@
 """Main module"""
 import os
+import re
 import logging
 
 from pathlib import Path
@@ -13,6 +14,9 @@ import tomli
 
 # telegram core bot api extension
 from telegram.ext import Updater
+
+# import link types and other info
+from extra import *
 
 # current timestamp & this file directory
 date_run = datetime.now()
@@ -67,6 +71,33 @@ def setup_logging():
         logging.getLogger().addHandler(fh)
     else:
         log.info("Logging to file disabled.")
+
+
+################################################################################
+# telegram bot helpers
+################################################################################
+
+
+def formatter(query: str) -> list[Link]:
+    """Exctract and format links in text
+
+    Args:
+        query (str): text
+
+    Returns:
+        list[Link]: list of Links
+    """
+    if not query:
+        return None
+    response = []
+    for re_key, re_type in link_dict.items():
+        for link in re.finditer(re_type["re"], query):
+            # dictionary keys = format args
+            _link = re_type["link"].format(**link.groupdict())
+            log.info("Received %s link: '%s'.", re_key, _link)
+            # add to response list
+            response.append(Link(re_type["type"], _link, int(link.group("id"))))
+    return response
 
 
 ################################################################################
