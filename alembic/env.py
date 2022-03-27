@@ -32,7 +32,7 @@ if config.config_file_name is not None:
 # change database URI
 config.set_main_option(
     "sqlalchemy.url",
-    os.environ["DATABASE_URI"].replace("postgres://", "postgresql://"),
+    os.environ["DATABASE_URL"].replace("postgres://", "postgresql://"),
 )
 
 from db import Base

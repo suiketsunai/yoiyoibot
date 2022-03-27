@@ -16,6 +16,8 @@ tweepy = "*"
 requests = "*"
 pixivpy = "*"
 pillow = "*"
+python-magic = "*"
+python-ffmpeg = "*"
 
 [dev-packages]
 black = "*"

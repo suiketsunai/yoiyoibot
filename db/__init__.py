@@ -13,7 +13,7 @@ from db.models import Base
 load_dotenv()
 
 engine = create_engine(
-    os.environ["DATABASE_URI"].replace("postgres://", "postgresql://"),
+    os.environ["DATABASE_URL"].replace("postgres://", "postgresql://"),
     echo=True,
     future=True,
 )
