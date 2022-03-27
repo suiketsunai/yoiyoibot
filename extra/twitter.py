@@ -81,7 +81,7 @@ def get_twitter_media(
         ]
 
 
-def get_twitter_links(tid: int) -> TwitterMedia:
+def get_twitter_links(tid: int | str) -> TwitterMedia:
     """Get illustration info with twitter api by id
 
     Args:

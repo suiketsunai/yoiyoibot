@@ -367,7 +367,7 @@ def send_twitter(
             group = []
             for photo in media.links:
                 update.message.chat.send_action(ChatAction.UPLOAD_PHOTO)
-                log.debug("Link: %s.", photo)
+                log.debug("Link: '%s.'", photo)
                 log.debug("Downloading...")
                 file = requests.get(
                     url=photo,
@@ -414,7 +414,7 @@ def send_tiktok(
             else:
                 data["video"] = video.link
             # notify user
-            update.message.chat.send_action(action=ChatAction.UPLOAD_VIDEO)
+            update.message.chat.send_action(ChatAction.UPLOAD_VIDEO)
             # download
             vid = requests.get(
                 url=data["video"],

@@ -1,6 +1,4 @@
 """Instagram module"""
-import os
-import re
 import logging
 
 # http requests

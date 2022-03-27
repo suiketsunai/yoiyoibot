@@ -1,5 +1,4 @@
 """TikTok module"""
-import os
 import re
 import logging
 
