@@ -28,6 +28,7 @@ from telegram import (
     InlineQueryResultArticle,
     InlineQueryResultVideo,
     InputMediaPhoto,
+    InputMediaVideo,
     InputTextMessageContent as in_text,
     Message,
     ChatAction,
@@ -72,6 +73,9 @@ from extra.tiktok import get_tiktok_links
 
 # import twitter api
 from extra.twitter import get_twitter_links
+
+# import instagram api
+from extra.instagram import get_instagram_links
 
 # current timestamp & this file directory
 date_run = datetime.now()
@@ -450,8 +454,51 @@ def send_tiktok(
     send_error(update, esc(text))
 
 
-def send_instagram():
-    return False
+def send_instagram(
+    update: Update,
+    context: CallbackContext,
+    link: Link,
+    user: User,
+):
+    if media := get_instagram_links(link.link):
+        group = []
+        for item in media:
+            log.debug("Link: '%s.'", item.link)
+            log.debug("Downloading...")
+            file = requests.get(
+                item.link,
+                headers=fake_headers,
+                allow_redirects=True,
+            )
+            log.debug("Adding content to collection...")
+            if item.type == "image":
+                update.message.chat.send_action(ChatAction.UPLOAD_PHOTO)
+                group.append(InputMediaPhoto(file.content))
+            if item.type == "video":
+                update.message.chat.send_action(ChatAction.UPLOAD_VIDEO)
+                group.append(InputMediaVideo(file.content))
+        log.debug("Finished adding to collection.")
+        log.debug("Changing caption to '%s'.", link.link)
+        group[0].caption = link.link
+        log.debug("Sending media group...")
+        context.bot.send_media_group(
+            reply_to_message_id=update.effective_message.message_id,
+            chat_id=update.effective_message.chat_id,
+            media=group,
+        )
+        if user.in_orig:
+            for item in media:
+                context.bot.send_document(
+                    reply_to_message_id=update.effective_message.message_id,
+                    chat_id=update.effective_message.chat_id,
+                    caption=link.link,
+                    document=item.link,
+                )
+        return
+    # if no links returned
+    else:
+        text = "This instagram content can't be found or downloaded."
+    send_error(update, esc(text))
 
 
 def echo(update: Update, context: CallbackContext) -> None:
@@ -478,7 +525,7 @@ def echo(update: Update, context: CallbackContext) -> None:
     for link in formatter(text):
         match link.type:
             case LinkType.INSTAGRAM:
-                send_instagram()
+                send_instagram(update, context, link, user)
             case LinkType.TIKTOK:
                 send_tiktok(update, context, link, user)
             case LinkType.TWITTER:
