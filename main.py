@@ -11,6 +11,9 @@ from dotenv import load_dotenv
 # reading setings
 import tomli
 
+# telegram core bot api extension
+from telegram.ext import Updater
+
 # current timestamp & this file directory
 date_run = datetime.now()
 file_dir = Path(__file__).parent
@@ -75,6 +78,19 @@ def main() -> None:
     """Set up and run the bot"""
     # setup logging
     setup_logging()
+
+    # create updater & dispatcher
+    updater = Updater(
+        os.environ["TOKEN"],
+        request_kwargs={
+            "read_timeout": 6,
+            "connect_timeout": 7,
+        },
+    )
+    dispatcher = updater.dispatcher
+
+    # stop bot
+    updater.idle()
 
 
 if __name__ == "__main__":
