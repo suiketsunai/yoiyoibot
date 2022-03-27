@@ -217,7 +217,7 @@ def formatter(query: str) -> list[Link]:
             _link = re_type["link"].format(**link.groupdict())
             log.info("Received %s link: '%s'.", re_key, _link)
             # add to response list
-            response.append(Link(re_type["type"], _link, int(link.group("id"))))
+            response.append(Link(re_type["type"], _link, link.group("id")))
     return response
 
 
