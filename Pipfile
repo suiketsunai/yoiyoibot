@@ -4,17 +4,18 @@ verify_ssl = true
 name = "pypi"
 
 [packages]
-python-telegram-bot = "*"
-requests = "*"
-python-magic = "*"
+sqlalchemy = "*"
+alembic = "*"
 python-dotenv = "*"
 tomli = "*"
-sqlalchemy = "*"
-tweepy = "*"
-ffmpeg-python = "*"
-psycopg2 = "*"
 sqlalchemy-repr = "*"
-alembic = "*"
+psycopg2 = "*"
+python-dateutil = "*"
+python-telegram-bot = "*"
+tweepy = "*"
+requests = "*"
+pixivpy = "*"
+pillow = "*"
 
 [dev-packages]
 black = "*"
