@@ -28,6 +28,8 @@ from telegram.ext import (
     CallbackContext,
     InlineQueryHandler,
     CommandHandler,
+    MessageHandler,
+    Filters,
 )
 
 # bad request exception
@@ -280,6 +282,7 @@ def inliner(update: Update, context: CallbackContext) -> None:
         update (Update): telegram update object
         context (CallbackContext): telegram context object
     """
+    notify(update, func="inliner")
     if not (links := formatter(update.inline_query.query)):
         log.info("Inline: No query.")
         return
@@ -328,6 +331,56 @@ def inliner(update: Update, context: CallbackContext) -> None:
 
 
 ################################################################################
+# telegram text message handlers
+################################################################################
+
+
+def send_twitter():
+    return False
+
+
+def send_tiktok():
+    return False
+
+
+def send_instagram():
+    return False
+
+
+def echo(update: Update, context: CallbackContext) -> None:
+    """Answers to user's links
+
+    Args:
+        update (Update): telegram update object
+        context (CallbackContext): telegram context object
+    """
+    notify(update, func="echo")
+    # get message
+    mes = update.effective_message
+    # if no text
+    if not ((text := mes.text) or (text := mes.caption)):
+        log.info("Echo: No text.")
+        return
+
+    with Session(engine) as session:
+        if not (user := session.get(User, mes.chat_id)):
+            send_error(update, "The bot doesn\\'t know you\\! Send /start\\.")
+            return
+        log.debug(user)
+
+    for link in formatter(text):
+        match link.type:
+            case LinkType.INSTAGRAM:
+                send_instagram()
+            case LinkType.TIKTOK:
+                send_tiktok(update, context, link, user)
+            case LinkType.TWITTER:
+                send_twitter()
+            case _:
+                send_reply(update, esc(link.link))
+
+
+################################################################################
 # main body
 ################################################################################
 
@@ -361,6 +414,11 @@ def main() -> None:
 
     # add inline mode
     dispatcher.add_handler(InlineQueryHandler(inliner, run_async=True))
+
+    # add echo command
+    dispatcher.add_handler(
+        MessageHandler(~Filters.command, echo, run_async=True)
+    )
 
     # start bot
     updater.start_polling()
