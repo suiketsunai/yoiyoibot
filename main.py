@@ -117,6 +117,40 @@ def setup_logging():
 esc = partial(escape_markdown, version=2)
 
 
+def send_reply(update: Update, text: str, **kwargs) -> Message:
+    """Reply to current message
+
+    Args:
+        update (Update): current update
+        text (str): text to send in markdown v2
+
+    Returns:
+        Message: Telegram Message
+    """
+    return update.effective_message.reply_markdown_v2(
+        reply_to_message_id=update.effective_message.message_id,
+        text=text,
+        **kwargs,
+    )
+
+
+def send_error(update: Update, text: str, **kwargs) -> Message:
+    """Reply to current message with error
+
+    Args:
+        update (Update): current update
+        text (str): text to send in markdown v2
+
+    Returns:
+        Message: Telegram Message
+    """
+    return update.effective_message.reply_markdown_v2(
+        reply_to_message_id=update.effective_message.message_id,
+        text=f"\\[`ERROR`\\] {text}",
+        **kwargs,
+    )
+
+
 def notify(update: Update, *, command: str = None, func: str = None) -> None:
     """Log that something hapened
 
