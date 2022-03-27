@@ -34,6 +34,10 @@ def setup_logging():
         format=config["log"]["form"],
         level=config["log"]["level"],
     )
+    # sqlalchemy logging
+    for name, module in config["log"]["sqlalchemy"].items():
+        if module["enable"]:
+            logging.getLogger(f"sqlalchemy.{name}").setLevel(module["level"])
     # setup logging to file
     file_log = config["log"]["file"]
     if file_log["enable"]:

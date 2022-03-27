@@ -6,6 +6,26 @@ level = "DEBUG"
 # see formatting settings
 form = "%(asctime)s > %(name)s [%(levelname)s]: %(message)s"
 
+[log.sqlalchemy.engine]
+# SQL echoing
+enable = true
+level = "INFO"
+
+[log.sqlalchemy.pool]
+# connection pool logging
+enable = true
+level = "INFO"
+
+[log.sqlalchemy.dialects]
+# custom logging for SQL dialects
+enable = true
+level = "INFO"
+
+[log.sqlalchemy.orm]
+# logging of various ORM functions
+enable = true
+level = "INFO"
+
 [log.file]
 # enable logging to file
 enable = true
