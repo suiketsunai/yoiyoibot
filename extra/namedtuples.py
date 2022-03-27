@@ -39,3 +39,12 @@ TwitterMedia = namedtuple(
         "thumbs",
     ],
 )
+
+InstaMedia = namedtuple(
+    "InstaMedia",
+    [
+        "prev",
+        "link",
+        "type",
+    ],
+)
