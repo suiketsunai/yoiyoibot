@@ -268,27 +268,26 @@ def command_instagram_hd(update: Update, _) -> None:
     """Enables/Disables Instagram HD mode"""
     notify(update, command="/command_instagram_hd")
     send_reply(
-        update, f"instagram HD mode is *{_switch[toggler(update, 'in_orig')]}*"
+        update,
+        f"Instagram HD mode is *{_switch[toggler(update, 'in_orig')]}*\\.",
     )
-
-    # hd quality for twitter
 
 
 def command_twitter_hd(update: Update, _) -> None:
     """Enables/Disables Twitter HD mode"""
     notify(update, command="/command_twitter_hd")
     send_reply(
-        update, f"twitter HD mode is *{_switch[toggler(update, 'tw_orig')]}*"
+        update,
+        f"Twitter HD mode is *{_switch[toggler(update, 'tw_orig')]}*\\.",
     )
-
-    # hd quality for tiktok
 
 
 def command_tiktok_hd(update: Update, _) -> None:
     """Enables/Disables TikTok HD mode"""
     notify(update, command="/command_tiktok_hd")
     send_reply(
-        update, f"tiktok HD mode is *{_switch[toggler(update, 'tt_orig')]}*"
+        update,
+        f"Tiktok HD mode is *{_switch[toggler(update, 'tt_orig')]}*\\.",
     )
 
 
