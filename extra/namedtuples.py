@@ -22,3 +22,20 @@ TikTokVideo = namedtuple(
         "thumb_1",
     ],
 )
+
+TwitterMedia = namedtuple(
+    "TwitterMedia",
+    [
+        "link",
+        "type",
+        "id",
+        "media",
+        "user_id",
+        "user",
+        "username",
+        "date",
+        "desc",
+        "links",
+        "thumbs",
+    ],
+)
