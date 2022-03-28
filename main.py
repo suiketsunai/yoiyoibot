@@ -268,6 +268,14 @@ def command_start(update: Update, _) -> None:
     )
 
 
+def command_help(update: Update, _) -> None:
+    """Send help message"""
+    notify(update, command="/help")
+    send_reply(
+        update, Path(os.environ["HELP_FILE"]).read_text(encoding="utf-8")
+    )
+
+
 def command_instagram_hd(update: Update, _) -> None:
     """Enables/Disables Instagram HD mode"""
     notify(update, command="/command_instagram_hd")
@@ -567,16 +575,19 @@ def main() -> None:
     )
     dispatcher = updater.dispatcher
 
-    # hd quality for instagram
+    # start the bot
     dispatcher.add_handler(CommandHandler("start", command_start))
 
-    # hd quality for instagram
+    # get help
+    dispatcher.add_handler(CommandHandler("help", command_help))
+
+    # toggle hd quality for instagram
     dispatcher.add_handler(CommandHandler("instagram_hd", command_instagram_hd))
 
-    # hd quality for twitter
+    # toggle hd quality for twitter
     dispatcher.add_handler(CommandHandler("twitter_hd", command_twitter_hd))
 
-    # hd quality for tiktok
+    # toggle hd quality for tiktok
     dispatcher.add_handler(CommandHandler("tiktok_hd", command_tiktok_hd))
 
     # add inline mode
@@ -587,7 +598,7 @@ def main() -> None:
         MessageHandler(~Filters.command, echo, run_async=True)
     )
 
-    # stop bot
+    # stop the bot
     updater.idle()
 
 

@@ -1,0 +1,15 @@
+\[ `HELP v\.1\.0` *\:* `2022\.03\.28` \]
+
+/help — show this very message\.
+
+_*Any text message*_ — bot will ignore it, unless there's a *tiktok*, *twitter* or *instagram* link in it, that can be parsed\.
+
+If you send _*several*_ links at once in one message, *all links will be* ||_hopefully_|| *parsed*\.
+
+\[ `TOGGLES` \]
+
+/tiktok\_hd \(_default_\: *off*\) — toggle this on if you want to get video in HD quality \(may be too large for telegram preview\)\.
+
+/twitter\_hd \(_default_\: *off*\) — toggle this on if you want to get twitter photos as documents\.
+
+/instagram\_hd \(_default_\: *off*\) — toggle this on if you want to get instagram photos as documents\.
