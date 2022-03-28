@@ -15,6 +15,7 @@ tweepy = "*"
 requests = "*"
 python-magic = "*"
 setuptools = "*"
+ffmpeg-python = "*"
 
 [dev-packages]
 black = "*"
