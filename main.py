@@ -519,6 +519,7 @@ def echo(update: Update, context: CallbackContext) -> None:
     notify(update, func="echo")
     # get message
     mes = update.effective_message
+    usr = update.effective_chat
     # if no text
     if not ((text := mes.text) or (text := mes.caption)):
         log.info("Echo: No text.")
@@ -527,11 +528,14 @@ def echo(update: Update, context: CallbackContext) -> None:
     with Session(engine) as session:
         if not (user := session.get(User, mes.chat_id)):
             user = User(
-                id=update.effective_chat.id,
-                full_name=update.effective_chat.full_name,
-                nick_name=update.effective_chat.username,
+                id=usr.id,
+                full_name=usr.full_name,
+                nick_name=usr.username,
             )
             session.add(user)
+            session.commit()
+        else:
+            user.full_name, user.nick_name = usr.full_name, usr.username
             session.commit()
         log.debug(user)
 
