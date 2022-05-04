@@ -8,7 +8,7 @@ If you send _*several*_ links at once in one message, *all links will be* ||_hop
 
 \[ `TOGGLES` \]
 
-/tiktok\_hd \(_default_\: *off*\) — toggle this on if you want to get video in HD quality \(may be too large for telegram preview\)\.
+/tiktok\_hd \(_default_\: *off*\) — toggle this on if you want to get video in HD quality \(may result in large videofile\)\.
 
 /twitter\_hd \(_default_\: *off*\) — toggle this on if you want to get twitter photos as documents\.
 
