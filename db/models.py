@@ -31,3 +31,5 @@ class User(Base):
     tt_orig = Column(Boolean, default=False, nullable=False)
     # instagram original mode
     in_orig = Column(Boolean, default=False, nullable=False)
+    # include link of media
+    include_link = Column(Boolean, default=False, nullable=False)
