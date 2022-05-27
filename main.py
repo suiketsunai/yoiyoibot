@@ -303,6 +303,15 @@ def command_tiktok_hd(update: Update, _) -> None:
     )
 
 
+def command_include_link(update: Update, _) -> None:
+    """Enables/Disables TikTok HD mode"""
+    notify(update, command="/command_include_link")
+    send_reply(
+        update,
+        f"Including source is *{_switch[toggler(update, 'include_link')]}*\\.",
+    )
+
+
 def inliner(update: Update, context: CallbackContext) -> None:
     """Answers to inline input
 
@@ -594,6 +603,9 @@ def main() -> None:
 
     # toggle hd quality for tiktok
     dispatcher.add_handler(CommandHandler("tiktok_hd", command_tiktok_hd))
+
+    # toggle including links
+    dispatcher.add_handler(CommandHandler("include_link", command_include_link))
 
     # add inline mode
     dispatcher.add_handler(InlineQueryHandler(inliner, run_async=True))

@@ -13,3 +13,5 @@ If you send _*several*_ links at once in one message, *all links will be* ||_hop
 /twitter\_hd \(_default_\: *off*\) — toggle this on if you want to get twitter photos as documents\.
 
 /instagram\_hd \(_default_\: *off*\) — toggle this on if you want to get instagram photos as documents\.
+
+/include\_link \(_default_\: *off*\) — toggle this on if you want to use source link as a caption to messages\.
