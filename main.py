@@ -386,7 +386,7 @@ def send_twitter(
                 group.append(InputMediaPhoto(file.content))
             log.debug("Finished adding to collection.")
             log.debug("Changing caption to '%s'.", link.link)
-            group[0].caption = link.link
+            group[0].caption = media.source if user.include_link else None
             log.debug("Sending media group...")
             context.bot.send_media_group(
                 reply_to_message_id=update.effective_message.message_id,
@@ -398,7 +398,7 @@ def send_twitter(
                 context.bot.send_document(
                     reply_to_message_id=update.effective_message.message_id,
                     chat_id=update.effective_message.chat_id,
-                    caption=link.link,
+                    caption=media.source if user.include_link else None,
                     document=media_link,
                 )
         return
@@ -448,6 +448,7 @@ def send_tiktok(
             context.bot.send_video(
                 reply_to_message_id=update.effective_message.message_id,
                 chat_id=update.effective_message.chat_id,
+                caption=video.source if user.include_link else None,
                 **data,
             )
             # delete
@@ -487,7 +488,7 @@ def send_instagram(
                 group.append(InputMediaVideo(file.content))
         log.debug("Finished adding to collection.")
         log.debug("Changing caption to '%s'.", link.link)
-        group[0].caption = link.link
+        group[0].caption = media[0].source if user.include_link else None
         log.debug("Sending media group...")
         context.bot.send_media_group(
             reply_to_message_id=update.effective_message.message_id,
@@ -499,7 +500,7 @@ def send_instagram(
                 context.bot.send_document(
                     reply_to_message_id=update.effective_message.message_id,
                     chat_id=update.effective_message.chat_id,
-                    caption=link.link,
+                    caption=media[0].source if user.include_link else None,
                     document=item.link,
                 )
         return

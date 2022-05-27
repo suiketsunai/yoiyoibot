@@ -64,6 +64,7 @@ link_dict = {
             (?P<id>\d+)
         """,
         "link": "https://m.tiktok.com/v/{id}",
+        "source": "https://www.tiktok.com/@{author}/video/{id}",
         "type": LinkType.TIKTOK,
     },
     "vtiktok": {

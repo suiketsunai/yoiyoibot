@@ -13,6 +13,7 @@ Link = namedtuple(
 TikTokVideo = namedtuple(
     "TikTokVideo",
     [
+        "source",
         "id",
         "link",
         "link_hd",
@@ -26,7 +27,7 @@ TikTokVideo = namedtuple(
 TwitterMedia = namedtuple(
     "TwitterMedia",
     [
-        "link",
+        "source",
         "type",
         "id",
         "media",
@@ -43,6 +44,7 @@ TwitterMedia = namedtuple(
 InstaMedia = namedtuple(
     "InstaMedia",
     [
+        "source",
         "prev",
         "link",
         "type",

@@ -5,6 +5,9 @@ import logging
 # http requests
 import requests
 
+# import link dictionary
+from extra import link_dict
+
 # import fake headers and getting file size function
 from extra.helper import fake_headers, get_file_size
 
@@ -68,6 +71,7 @@ def get_yt4k_links(link: str) -> TikTokVideo:
             log.info("YouTube4K: Collecting file sizes...")
             if size := get_file_size(link):
                 return TikTokVideo(
+                    link_dict["tiktok"]["link"].format(id=_id),
                     _id,
                     link,
                     link_hd,
@@ -125,6 +129,10 @@ def get_tikmate_links(link: str) -> TikTokVideo:
             log.info("TikMate: Collecting file sizes...")
             if size := get_file_size(link):
                 return TikTokVideo(
+                    link_dict["tiktok"]["source"].format(
+                        id=_id,
+                        author=r["author_id"],
+                    ),
                     _id,
                     link,
                     link_hd,
@@ -179,6 +187,10 @@ def get_lovetik_links(link: str) -> TikTokVideo:
             log.info("LoveTik: Collecting file sizes...")
             if size := get_file_size(link):
                 return TikTokVideo(
+                    link_dict["tiktok"]["source"].format(
+                        id=_id,
+                        author=r["author"][1:],
+                    ),
                     _id,
                     link,
                     link_hd,

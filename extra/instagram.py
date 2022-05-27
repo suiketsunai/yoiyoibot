@@ -64,6 +64,6 @@ def get_instagram_links(link: str) -> list[InstaMedia]:
                 _type = "image"
                 _link = item["image"]["photos"][2]["url"]
             _prev = item[_type]["display_url"]
-            results.append(InstaMedia(_prev, _link, _type))
+            results.append(InstaMedia(link, _prev, _link, _type))
         return results
     return None
