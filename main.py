@@ -506,11 +506,19 @@ def send_instagram(
         )
         if user.in_orig:
             for item in media:
+                if item.type == "video":
+                    continue
+                file = requests.get(
+                    item.link,
+                    headers=fake_headers,
+                    allow_redirects=True,
+                )
                 context.bot.send_document(
                     reply_to_message_id=update.effective_message.message_id,
                     chat_id=update.effective_message.chat_id,
                     caption=media[0].source if user.include_link else None,
-                    document=item.link,
+                    filename=re.match(insta_file, item.link).group("file"),
+                    document=file.content,
                 )
         return
     # if no links returned

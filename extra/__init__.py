@@ -90,3 +90,5 @@ link_dict = {
         "type": LinkType.INSTAGRAM,
     },
 }
+
+insta_file = r"(?:.+\/)(?P<file>\w+\.\w+)(?:\?)"
