@@ -519,6 +519,7 @@ def send_instagram(
                     caption=media[0].source if user.include_link else None,
                     filename=re.match(insta_file, item.link).group("file"),
                     document=file.content,
+                    disable_content_type_detection=True,
                 )
         return
     # if no links returned
