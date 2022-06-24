@@ -57,7 +57,7 @@ from sqlalchemy.orm import Session
 from db import engine
 
 # import database
-from db.models import User
+from db.models import Chat
 
 # import link types and other info
 from extra import *
@@ -180,26 +180,39 @@ def send_error(update: Update, text: str, **kwargs) -> Message:
     )
 
 
-def notify(update: Update, *, command: str = None, func: str = None) -> None:
+def notify(
+    update: Update,
+    *,
+    command: str = None,
+    func: str = None,
+    inline: bool = False,
+) -> None:
     """Log that something hapened
 
     Args:
         update (Update): current update
         command (str, optional): called command. Defaults to None.
     """
-    if command:
-        log.info(
-            "%s command was called by %s [%s].",
-            command,
+    if inline:
+        return log.info(
+            "Inline mode was invoked by %r [%r].",
             update.effective_user.full_name,
             update.effective_user.id,
         )
+    cht = update.effective_chat
+    if command:
+        return log.info(
+            "%r command was called by %r [%r].",
+            command,
+            cht.title if cht.id < 0 else cht.full_name,
+            cht.id,
+        )
     if func:
-        log.info(
-            "%s function was called by %s [%s].",
+        return log.info(
+            "%r function was called by %r [%r].",
             func,
-            update.effective_user.full_name,
-            update.effective_user.id,
+            cht.title if cht.id < 0 else cht.full_name,
+            cht.id,
         )
 
 
@@ -236,7 +249,7 @@ def toggler(update: Update, attr: str) -> bool:
         bool: new state
     """
     with Session(engine) as s:
-        u = s.get(User, update.effective_chat.id)
+        u = s.get(Chat, update.effective_chat.id)
         state = getattr(u, attr)
         setattr(u, attr, not state)
         s.commit()
@@ -251,13 +264,15 @@ def toggler(update: Update, attr: str) -> bool:
 def command_start(update: Update, _) -> None:
     """Start the bot"""
     notify(update, command="/start")
+    cht = update.effective_chat
     with Session(engine) as s:
-        if not s.get(User, update.effective_chat.id):
+        if not s.get(Chat, cht.id):
             s.add(
-                User(
-                    id=update.effective_chat.id,
-                    full_name=update.effective_chat.full_name,
-                    nick_name=update.effective_chat.username,
+                Chat(
+                    id=cht.id,
+                    type=cht.type,
+                    name=cht.title if cht.id < 0 else cht.full_name,
+                    chat_link=cht.username,
                 )
             )
             s.commit()
@@ -319,7 +334,7 @@ def inliner(update: Update, context: CallbackContext) -> None:
         update (Update): telegram update object
         context (CallbackContext): telegram context object
     """
-    notify(update, func="inliner")
+    notify(update, inline=True)
     if not (links := formatter(update.inline_query.query)):
         log.info("Inline: No query.")
         return
@@ -376,14 +391,13 @@ def send_twitter(
     update: Update,
     context: CallbackContext,
     link: Link,
-    user: User,
+    chat: Chat,
 ):
     if media := get_twitter_links(link.id):
         log.debug("Twitter media info: %s.", media)
         if media.media == "photo":
             group = []
             for photo in media.links:
-                update.message.chat.send_action(ChatAction.UPLOAD_PHOTO)
                 log.debug("Link: '%s.'", photo)
                 log.debug("Downloading...")
                 file = requests.get(
@@ -395,19 +409,21 @@ def send_twitter(
                 group.append(InputMediaPhoto(file.content))
             log.debug("Finished adding to collection.")
             log.debug("Changing caption to '%s'.", link.link)
-            group[0].caption = media.source if user.include_link else None
+            group[0].caption = media.source if chat.include_link else None
             log.debug("Sending media group...")
+            if chat.type == "private":
+                update.message.chat.send_action(ChatAction.UPLOAD_PHOTO)
             context.bot.send_media_group(
                 reply_to_message_id=update.effective_message.message_id,
                 chat_id=update.effective_message.chat_id,
                 media=group,
             )
-        if user.tw_orig or media.media != "photo":
+        if chat.tw_orig or media.media != "photo":
             for media_link in media.links:
                 context.bot.send_document(
                     reply_to_message_id=update.effective_message.message_id,
                     chat_id=update.effective_message.chat_id,
-                    caption=media.source if user.include_link else None,
+                    caption=media.source if chat.include_link else None,
                     document=media_link,
                 )
         return
@@ -420,18 +436,16 @@ def send_tiktok(
     update: Update,
     context: CallbackContext,
     link: Link,
-    user: User,
+    chat: Chat,
 ):
     if video := get_tiktok_links(link.link):
         # check size
         data = {}
         if video.size < 50 << 20:
-            if user.tt_orig and video.size_hd < 50 << 20:
+            if chat.tt_orig and video.size_hd < 50 << 20:
                 data["video"] = video.link_hd
             else:
                 data["video"] = video.link
-            # notify user
-            update.message.chat.send_action(ChatAction.UPLOAD_VIDEO)
             # download
             vid = requests.get(
                 url=data["video"],
@@ -453,11 +467,14 @@ def send_tiktok(
                 mp4.unlink()
             else:
                 data["video"] = file.read_bytes()
+            # notify user
+            if chat.type == "private":
+                update.message.chat.send_action(ChatAction.UPLOAD_VIDEO)
             # upload
             context.bot.send_video(
                 reply_to_message_id=update.effective_message.message_id,
                 chat_id=update.effective_message.chat_id,
-                caption=video.source if user.include_link else None,
+                caption=video.source if chat.include_link else None,
                 **data,
             )
             # delete
@@ -476,7 +493,7 @@ def send_instagram(
     update: Update,
     context: CallbackContext,
     link: Link,
-    user: User,
+    chat: Chat,
 ):
     if media := get_instagram_links(link.link):
         group = []
@@ -490,21 +507,23 @@ def send_instagram(
             )
             log.debug("Adding content to collection...")
             if item.type == "image":
-                update.message.chat.send_action(ChatAction.UPLOAD_PHOTO)
+                if chat.type == "private":
+                    update.message.chat.send_action(ChatAction.UPLOAD_PHOTO)
                 group.append(InputMediaPhoto(file.content))
             if item.type == "video":
-                update.message.chat.send_action(ChatAction.UPLOAD_VIDEO)
+                if chat.type == "private":
+                    update.message.chat.send_action(ChatAction.UPLOAD_VIDEO)
                 group.append(InputMediaVideo(file.content))
         log.debug("Finished adding to collection.")
         log.debug("Changing caption to '%s'.", link.link)
-        group[0].caption = media[0].source if user.include_link else None
+        group[0].caption = media[0].source if chat.include_link else None
         log.debug("Sending media group...")
         context.bot.send_media_group(
             reply_to_message_id=update.effective_message.message_id,
             chat_id=update.effective_message.chat_id,
             media=group,
         )
-        if user.in_orig:
+        if chat.in_orig:
             for item in media:
                 if item.type == "video":
                     continue
@@ -516,7 +535,7 @@ def send_instagram(
                 context.bot.send_document(
                     reply_to_message_id=update.effective_message.message_id,
                     chat_id=update.effective_message.chat_id,
-                    caption=media[0].source if user.include_link else None,
+                    caption=media[0].source if chat.include_link else None,
                     filename=re.match(insta_file, item.link).group("file"),
                     document=file.content,
                     disable_content_type_detection=True,
@@ -538,34 +557,41 @@ def echo(update: Update, context: CallbackContext) -> None:
     notify(update, func="echo")
     # get message
     mes = update.effective_message
-    usr = update.effective_chat
+    cht = update.effective_chat
     # if no text
     if not ((text := mes.text) or (text := mes.caption)):
         log.info("Echo: No text.")
         return
 
     with Session(engine) as session:
-        if not (user := session.get(User, mes.chat_id)):
-            user = User(
-                id=usr.id,
-                full_name=usr.full_name,
-                nick_name=usr.username,
+        is_not_user = cht.id < 0
+        if not (chat := session.get(Chat, cht.id)):
+            session.add(
+                chat := Chat(
+                    id=cht.id,
+                    type=cht.type,
+                    name=cht.title if is_not_user else cht.full_name,
+                    chat_link=cht.username,
+                    tw_orig=is_not_user,
+                    tt_orig=is_not_user,
+                    in_orig=is_not_user,
+                    include_link=is_not_user,
+                )
             )
-            session.add(user)
-            session.commit()
         else:
-            user.full_name, user.nick_name = usr.full_name, usr.username
-            session.commit()
-        log.debug(user)
+            chat.name = cht.title if is_not_user else cht.full_name
+            chat.chat_link = cht.username
+        session.commit()
+        log.debug(chat)
 
     for link in formatter(text):
         match link.type:
             case LinkType.INSTAGRAM:
-                send_instagram(update, context, link, user)
+                send_instagram(update, context, link, chat)
             case LinkType.TIKTOK:
-                send_tiktok(update, context, link, user)
+                send_tiktok(update, context, link, chat)
             case LinkType.TWITTER:
-                send_twitter(update, context, link, user)
+                send_twitter(update, context, link, chat)
             case _:
                 send_reply(update, esc(link.link))
 
