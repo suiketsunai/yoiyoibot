@@ -43,19 +43,9 @@ def get_twitter_media(
         list[list[str], list[str]]: media links
     """
     if media_type == "photo":
-        pat = r"""(?x)
-            (?:
-                (?:media\/)
-                (?P<id>[^\.\?]+)
-                (?:
-                    (?:\?.*format\=)|(?:\.)
-                )
-            )
-            (?P<format>\w+)
-        """
         links = []
         for url in image_list:
-            args = re.search(pat, url).groupdict()
+            args = re.search(link_dict["twitter"]["file"], url).groupdict()
             links.append(link_dict["twitter"]["full"].format(**args))
         return [links, [link.replace("orig", "large") for link in links]]
     else:

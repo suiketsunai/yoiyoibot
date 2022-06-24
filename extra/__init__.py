@@ -35,6 +35,16 @@ link_dict = {
             )
             (?P<id>\d+)
         """,
+        "file": r"""(?x)
+            (?:
+                (?:media\/)
+                (?P<id>[^\.\?]+)
+                (?:
+                    (?:\?.*format\=)|(?:\.)
+                )
+            )
+            (?P<format>\w+)
+        """,
         "link": "https://twitter.com/{author}/status/{id}",
         "full": "https://pbs.twimg.com/media/{id}?format={format}&name=orig",
         "type": LinkType.TWITTER,

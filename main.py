@@ -29,6 +29,7 @@ from telegram import (
     InlineQueryResultVideo,
     InputMediaPhoto,
     InputMediaVideo,
+    InputMediaDocument,
     InputTextMessageContent as in_text,
     Message,
     ChatAction,
@@ -114,7 +115,7 @@ def setup_logging():
             try:
                 log.info("Creating log directory...")
                 log_dir.mkdir()
-                log.info("Created log directory: '%s'.", log_dir.resolve())
+                log.info("Created log directory: %r.", log_dir.resolve())
             except Exception as ex:
                 log.error("Exception occured: %s", ex)
                 log.info("Can't execute program.")
@@ -122,7 +123,7 @@ def setup_logging():
         log_date = date_run.strftime(file_log["date"])
         log_name = f'{file_log["pref"]}{log_date}.log'
         log_file = log_dir / log_name
-        log.info("Logging to file: '%s'.", log_name)
+        log.info("Logging to file: %r.", log_name)
         # add file handler
         fh = logging.FileHandler(log_file, encoding="utf-8")
         fh.setFormatter(logging.Formatter(file_log["form"]))
@@ -232,7 +233,7 @@ def formatter(query: str) -> list[Link]:
         for link in re.finditer(re_type["re"], query):
             # dictionary keys = format args
             _link = re_type["link"].format(**link.groupdict())
-            log.info("Received %s link: '%s'.", re_key, _link)
+            log.info("Received %s link: %r.", re_key, _link)
             # add to response list
             response.append(Link(re_type["type"], _link, link.group("id")))
     return response
@@ -393,12 +394,18 @@ def send_twitter(
     link: Link,
     chat: Chat,
 ):
+    mes = update.effective_message
+    reply = {
+        "reply_to_message_id": None if chat.include_link else mes.message_id,
+        "chat_id": mes.chat_id,
+    }
     if media := get_twitter_links(link.id):
         log.debug("Twitter media info: %s.", media)
+        info = media.source if chat.include_link else None
         if media.media == "photo":
-            group = []
+            photos, documents = [], []
             for photo in media.links:
-                log.debug("Link: '%s.'", photo)
+                log.debug("Link: %r.", photo)
                 log.debug("Downloading...")
                 file = requests.get(
                     url=photo,
@@ -406,26 +413,32 @@ def send_twitter(
                     allow_redirects=True,
                 )
                 log.debug("Adding content to collection...")
-                group.append(InputMediaPhoto(file.content))
+                photos.append(InputMediaPhoto(file.content))
+                documents.append(
+                    InputMediaDocument(
+                        file.content,
+                        filename="{id}.{format}".format(
+                            **re.search(
+                                link_dict["twitter"]["file"], photo
+                            ).groupdict()
+                        ),
+                    )
+                )
             log.debug("Finished adding to collection.")
-            log.debug("Changing caption to '%s'.", link.link)
-            group[0].caption = media.source if chat.include_link else None
+            log.debug("Changing caption to %r.", link.link)
+            photos[0].caption = documents[0].caption = info
             log.debug("Sending media group...")
             if chat.type == "private":
                 update.message.chat.send_action(ChatAction.UPLOAD_PHOTO)
-            context.bot.send_media_group(
-                reply_to_message_id=update.effective_message.message_id,
-                chat_id=update.effective_message.chat_id,
-                media=group,
-            )
-        if chat.tw_orig or media.media != "photo":
-            for media_link in media.links:
-                context.bot.send_document(
-                    reply_to_message_id=update.effective_message.message_id,
-                    chat_id=update.effective_message.chat_id,
-                    caption=media.source if chat.include_link else None,
-                    document=media_link,
-                )
+            # send photo group
+            context.bot.send_media_group(**reply, media=photos)
+            # send document group
+            if chat.tw_orig:
+                context.bot.send_media_group(**reply, media=documents)
+        else:
+            # send video and gifs as is
+            for media in media.links:
+                context.bot.send_document(**reply, caption=info, document=media)
         return
     else:
         text = "This tweet content can't be found or downloaded."
@@ -438,17 +451,22 @@ def send_tiktok(
     link: Link,
     chat: Chat,
 ):
+    mes = update.effective_message
+    reply = {
+        "reply_to_message_id": None if chat.include_link else mes.message_id,
+        "chat_id": mes.chat_id,
+    }
     if video := get_tiktok_links(link.link):
+        info = video.source if chat.include_link else None
         # check size
-        data = {}
         if video.size < 50 << 20:
             if chat.tt_orig and video.size_hd < 50 << 20:
-                data["video"] = video.link_hd
+                reply["video"] = video.link_hd
             else:
-                data["video"] = video.link
+                reply["video"] = video.link
             # download
             vid = requests.get(
-                url=data["video"],
+                url=reply["video"],
                 headers=fake_headers,
                 allow_redirects=True,
             )
@@ -463,20 +481,15 @@ def send_tiktok(
                 mp4 = file_dir / f"{video.id}.mp4"
                 log.info("Converting...")
                 ffmpeg.input(str(file)).output(str(mp4)).run()
-                data["video"] = mp4.read_bytes()
+                reply["video"] = mp4.read_bytes()
                 mp4.unlink()
             else:
-                data["video"] = file.read_bytes()
+                reply["video"] = file.read_bytes()
             # notify user
             if chat.type == "private":
                 update.message.chat.send_action(ChatAction.UPLOAD_VIDEO)
             # upload
-            context.bot.send_video(
-                reply_to_message_id=update.effective_message.message_id,
-                chat_id=update.effective_message.chat_id,
-                caption=video.source if chat.include_link else None,
-                **data,
-            )
+            context.bot.send_video(**reply, caption=info)
             # delete
             file.unlink()
             return
@@ -495,10 +508,16 @@ def send_instagram(
     link: Link,
     chat: Chat,
 ):
+    mes = update.effective_message
+    reply = {
+        "reply_to_message_id": None if chat.include_link else mes.message_id,
+        "chat_id": mes.chat_id,
+    }
     if media := get_instagram_links(link.link):
-        group = []
+        files, documents = [], []
+        info = media[0].source if chat.include_link else None
         for item in media:
-            log.debug("Link: '%s.'", item.link)
+            log.debug("Link: %r.", item.link)
             log.debug("Downloading...")
             file = requests.get(
                 item.link,
@@ -509,37 +528,28 @@ def send_instagram(
             if item.type == "image":
                 if chat.type == "private":
                     update.message.chat.send_action(ChatAction.UPLOAD_PHOTO)
-                group.append(InputMediaPhoto(file.content))
+                files.append(InputMediaPhoto(file.content))
+                documents.append(
+                    InputMediaDocument(
+                        file.content,
+                        disable_content_type_detection=True,
+                        filename=re.match(insta_file, item.link).group("file"),
+                    )
+                )
             if item.type == "video":
                 if chat.type == "private":
                     update.message.chat.send_action(ChatAction.UPLOAD_VIDEO)
-                group.append(InputMediaVideo(file.content))
+                files.append(InputMediaVideo(file.content))
         log.debug("Finished adding to collection.")
-        log.debug("Changing caption to '%s'.", link.link)
-        group[0].caption = media[0].source if chat.include_link else None
+        log.debug("Changing caption to: %r.", link.link)
+        files[0].caption = info
         log.debug("Sending media group...")
-        context.bot.send_media_group(
-            reply_to_message_id=update.effective_message.message_id,
-            chat_id=update.effective_message.chat_id,
-            media=group,
-        )
-        if chat.in_orig:
-            for item in media:
-                if item.type == "video":
-                    continue
-                file = requests.get(
-                    item.link,
-                    headers=fake_headers,
-                    allow_redirects=True,
-                )
-                context.bot.send_document(
-                    reply_to_message_id=update.effective_message.message_id,
-                    chat_id=update.effective_message.chat_id,
-                    caption=media[0].source if chat.include_link else None,
-                    filename=re.match(insta_file, item.link).group("file"),
-                    document=file.content,
-                    disable_content_type_detection=True,
-                )
+        # send file group
+        context.bot.send_media_group(**reply, media=files)
+        # send document group
+        if chat.in_orig and documents:
+            documents[0].caption = info
+            context.bot.send_media_group(**reply, media=documents)
         return
     # if no links returned
     else:
