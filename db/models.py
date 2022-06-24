@@ -13,17 +13,19 @@ from sqlalchemy_repr import RepresentableBase
 Base = declarative_base(cls=RepresentableBase)
 
 
-class User(Base):
-    __tablename__ = "user"
+class Chat(Base):
+    __tablename__ = "chat"
 
-    # telegram id
+    # chat id
     id = Column(BigInteger, primary_key=True, autoincrement=False)
-    # telegram full name
-    full_name = Column(String)
-    # telegram user name
-    nick_name = Column(String)
-    # last sent link (currently not used)
-    last_link = Column(String)
+    # chat type
+    type = Column(String, nullable=False)
+    # chat name
+    name = Column(String)
+    # chat username / link
+    chat_link = Column(String)
+    # last sent link info (currently not used, for pixiv)
+    last_info = Column(String)
 
     # twitter original mode
     tw_orig = Column(Boolean, default=False, nullable=False)
