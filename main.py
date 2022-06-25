@@ -426,7 +426,7 @@ def send_twitter(
                 )
             log.debug("Finished adding to collection.")
             log.debug("Changing caption to %r.", link.link)
-            photos[0].caption = documents[0].caption = info
+            photos[0].caption = documents[-1].caption = info
             log.debug("Sending media group...")
             if chat.type == "private":
                 update.message.chat.send_action(ChatAction.UPLOAD_PHOTO)
@@ -548,7 +548,7 @@ def send_instagram(
         context.bot.send_media_group(**reply, media=files)
         # send document group
         if chat.in_orig and documents:
-            documents[0].caption = info
+            documents[-1].caption = info
             context.bot.send_media_group(**reply, media=documents)
         return
     # if no links returned
