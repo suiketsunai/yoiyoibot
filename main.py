@@ -449,8 +449,11 @@ def send_twitter(
                 context.bot.send_document(**reply, caption=info, document=media)
         return
     else:
-        text = "This tweet content can't be found or downloaded."
-    send_error(update, esc(text))
+        text = (
+            f"[This twitter content]({link.link}) can\\'t be found or "
+            "downloaded\\. If this seems to be wrong, try again later\\."
+        )
+    send_error(update, text)
 
 
 def send_tiktok(
@@ -503,11 +506,14 @@ def send_tiktok(
             return
         # if file is too big
         else:
-            text = "File is too big."
+            text = "Sorry, this file is too big\\!"
     # if there is no video
     else:
-        text = "This tiktok can't be found or downloaded."
-    send_error(update, esc(text))
+        text = (
+            f"[This tiktok content]({link.link}) can\\'t be found or "
+            "downloaded\\. If this seems to be wrong, try again later\\."
+        )
+    send_error(update, text)
 
 
 def send_instagram(
@@ -571,8 +577,11 @@ def send_instagram(
         return
     # if no links returned
     else:
-        text = "This instagram content can't be found or downloaded."
-    send_error(update, esc(text))
+        text = (
+            f"[This instagram content]({link.link}) can\\'t be found or "
+            "downloaded\\. If this seems to be wrong, try again later\\."
+        )
+    send_error(update, text)
 
 
 def echo(update: Update, context: CallbackContext) -> None:
