@@ -633,7 +633,7 @@ def echo(update: Update, context: CallbackContext) -> None:
             case _:
                 send_reply(update, esc(link.link))
         # anti-flood control
-        time.sleep(3)
+        time.sleep(15)
 
 
 ################################################################################
