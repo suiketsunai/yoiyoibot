@@ -388,6 +388,8 @@ def inliner(update: Update, context: CallbackContext) -> None:
 # telegram text message handlers
 ################################################################################
 
+SEND_DELAY = 5
+
 
 def send_twitter(
     update: Update,
@@ -436,10 +438,10 @@ def send_twitter(
                 update.message.chat.send_action(ChatAction.UPLOAD_PHOTO)
             # send photo group
             post = context.bot.send_media_group(**reply, media=photos)
+            # anti-flood control
+            time.sleep(len(photos) * SEND_DELAY)
             # send document group
             if chat.tw_orig and post:
-                # anti-flood control
-                time.sleep(len(photos) * 4)
                 # documents[-1].caption = info
                 context.bot.send_media_group(
                     chat_id=mes.chat_id,
@@ -447,7 +449,7 @@ def send_twitter(
                     media=documents,
                 )
                 # anti-flood control
-                time.sleep(len(documents) * 4)
+                time.sleep(len(documents) * SEND_DELAY)
         else:
             # send video and gifs as is
             for media in media.links:
@@ -571,10 +573,10 @@ def send_instagram(
         log.debug("Sending media group...")
         # send file group
         post = context.bot.send_media_group(**reply, media=files)
+        # anti-flood control
+        time.sleep(len(files) * SEND_DELAY)
         # send document group
         if chat.in_orig and documents and post:
-            # anti-flood control
-            time.sleep(len(files) * 4)
             # documents[-1].caption = info
             context.bot.send_media_group(
                 chat_id=mes.chat_id,
@@ -582,8 +584,7 @@ def send_instagram(
                 media=documents,
             )
             # anti-flood control
-            time.sleep(len(documents) * 4)
-
+            time.sleep(len(documents) * SEND_DELAY)
         return
     # if no links returned
     else:
@@ -642,7 +643,7 @@ def echo(update: Update, context: CallbackContext) -> None:
             case _:
                 send_reply(update, esc(link.link))
         # anti-flood control
-        time.sleep(10)
+        time.sleep(2 * SEND_DELAY)
 
 
 ################################################################################
