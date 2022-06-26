@@ -414,14 +414,17 @@ def send_twitter(
                 )
                 log.debug("Adding content to collection...")
                 photos.append(InputMediaPhoto(file.content))
+                filename = "{}.{}".format(
+                    re.search(link_dict["twitter"]["file"], photo)["id"],
+                    magic.from_buffer(file.content, mime=True).split("/")[1],
+                )
+                log.debug("Filename: %r.", filename)
+                # log.debug("Full ext: %r.", magic.from_buffer(file.content))
                 documents.append(
                     InputMediaDocument(
-                        file.content,
-                        filename="{id}.{format}".format(
-                            **re.search(
-                                link_dict["twitter"]["file"], photo
-                            ).groupdict()
-                        ),
+                        media=file.content,
+                        filename=filename,
+                        disable_content_type_detection=True,
                     )
                 )
             log.debug("Finished adding to collection.")
@@ -529,11 +532,17 @@ def send_instagram(
                 if chat.type == "private":
                     update.message.chat.send_action(ChatAction.UPLOAD_PHOTO)
                 files.append(InputMediaPhoto(file.content))
+                filename = "{}.{}".format(
+                    re.search(link_dict["instagram"]["file"], item.link)["id"],
+                    magic.from_buffer(file.content, mime=True).split("/")[1],
+                )
+                log.debug("Filename: %r.", filename)
+                # log.debug("Full ext: %r.", magic.from_buffer(file.content))
                 documents.append(
                     InputMediaDocument(
-                        file.content,
+                        media=file.content,
+                        filename=filename,
                         disable_content_type_detection=True,
-                        filename=re.match(insta_file, item.link).group("file"),
                     )
                 )
             if item.type == "video":

@@ -96,9 +96,15 @@ link_dict = {
         )
         (?P<id>[\w\-]+)
         """,
+        "file": r"""(?x)
+        (?:
+            (?:.+\/)
+            (?P<id>\w+)\.
+            (?P<ext>\w{3,4})
+            (?:\?)
+        )
+        """,
         "link": "https://instagram.com/p/{id}",
         "type": LinkType.INSTAGRAM,
     },
 }
-
-insta_file = r"(?:.+\/)(?P<file>\w+\.\w+)(?:\?)"
