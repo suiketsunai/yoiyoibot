@@ -429,15 +429,20 @@ def send_twitter(
                 )
             log.debug("Finished adding to collection.")
             log.debug("Changing caption to %r.", link.link)
-            photos[0].caption = documents[-1].caption = info
+            photos[0].caption = info
             log.debug("Sending media group...")
             if chat.type == "private":
                 update.message.chat.send_action(ChatAction.UPLOAD_PHOTO)
             # send photo group
-            context.bot.send_media_group(**reply, media=photos)
+            post = context.bot.send_media_group(**reply, media=photos)
             # send document group
-            if chat.tw_orig:
-                context.bot.send_media_group(**reply, media=documents)
+            if chat.tw_orig and post:
+                documents[-1].caption = info
+                context.bot.send_media_group(
+                    chat_id=mes.chat_id,
+                    reply_to_message_id=post[0].message_id,
+                    media=documents,
+                )
         else:
             # send video and gifs as is
             for media in media.links:
@@ -554,11 +559,15 @@ def send_instagram(
         files[0].caption = info
         log.debug("Sending media group...")
         # send file group
-        context.bot.send_media_group(**reply, media=files)
+        post = context.bot.send_media_group(**reply, media=files)
         # send document group
-        if chat.in_orig and documents:
+        if chat.in_orig and documents and post:
             documents[-1].caption = info
-            context.bot.send_media_group(**reply, media=documents)
+            context.bot.send_media_group(
+                chat_id=mes.chat_id,
+                reply_to_message_id=post[0].message_id,
+                media=documents,
+            )
         return
     # if no links returned
     else:
