@@ -437,7 +437,7 @@ def send_twitter(
             post = context.bot.send_media_group(**reply, media=photos)
             # send document group
             if chat.tw_orig and post:
-                documents[-1].caption = info
+                # documents[-1].caption = info
                 context.bot.send_media_group(
                     chat_id=mes.chat_id,
                     reply_to_message_id=post[0].message_id,
@@ -562,7 +562,7 @@ def send_instagram(
         post = context.bot.send_media_group(**reply, media=files)
         # send document group
         if chat.in_orig and documents and post:
-            documents[-1].caption = info
+            # documents[-1].caption = info
             context.bot.send_media_group(
                 chat_id=mes.chat_id,
                 reply_to_message_id=post[0].message_id,
