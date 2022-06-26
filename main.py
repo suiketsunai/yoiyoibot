@@ -438,12 +438,16 @@ def send_twitter(
             post = context.bot.send_media_group(**reply, media=photos)
             # send document group
             if chat.tw_orig and post:
+                # anti-flood control
+                time.sleep(len(photos) * 4)
                 # documents[-1].caption = info
                 context.bot.send_media_group(
                     chat_id=mes.chat_id,
                     reply_to_message_id=post[0].message_id,
                     media=documents,
                 )
+                # anti-flood control
+                time.sleep(len(documents) * 4)
         else:
             # send video and gifs as is
             for media in media.links:
@@ -569,12 +573,17 @@ def send_instagram(
         post = context.bot.send_media_group(**reply, media=files)
         # send document group
         if chat.in_orig and documents and post:
+            # anti-flood control
+            time.sleep(len(files) * 4)
             # documents[-1].caption = info
             context.bot.send_media_group(
                 chat_id=mes.chat_id,
                 reply_to_message_id=post[0].message_id,
                 media=documents,
             )
+            # anti-flood control
+            time.sleep(len(documents) * 4)
+
         return
     # if no links returned
     else:
@@ -633,7 +642,7 @@ def echo(update: Update, context: CallbackContext) -> None:
             case _:
                 send_reply(update, esc(link.link))
         # anti-flood control
-        time.sleep(15)
+        time.sleep(10)
 
 
 ################################################################################
