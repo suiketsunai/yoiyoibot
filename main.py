@@ -1,6 +1,7 @@
 """Main module"""
 import os
 import re
+import time
 import logging
 
 from pathlib import Path
@@ -631,6 +632,8 @@ def echo(update: Update, context: CallbackContext) -> None:
                 send_twitter(update, context, link, chat)
             case _:
                 send_reply(update, esc(link.link))
+        # anti-flood control
+        time.sleep(3)
 
 
 ################################################################################
