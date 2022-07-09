@@ -4,11 +4,15 @@ from sqlalchemy import (
     BigInteger,
     String,
     Boolean,
+    Integer,
 )
-from sqlalchemy.orm import declarative_base
+from sqlalchemy.orm import declarative_base, validates
 
 # pretty __repr__ and __str__
 from sqlalchemy_repr import RepresentableBase
+
+# import pixiv styles and link types
+from extra import TwitterStyle
 
 Base = declarative_base(cls=RepresentableBase)
 
@@ -29,6 +33,15 @@ class Chat(Base):
 
     # twitter original mode
     tw_orig = Column(Boolean, default=False, nullable=False)
+    # twitter style
+    tw_style = Column(Integer, default=0, nullable=False)
+
+    @validates("tw_style")
+    def validate_twitter_style(self, key, value):
+        if TwitterStyle.validate(value):
+            return value
+        raise ValueError(f"Invalid value {value!r} for field {key!r}.")
+
     # tiktok hd mode
     tt_orig = Column(Boolean, default=False, nullable=False)
     # instagram original mode

@@ -49,6 +49,9 @@ from telegram.ext import (
 # bad request exception
 from telegram.error import BadRequest
 
+# telegram constants
+from telegram.constants import PARSEMODE_MARKDOWN_V2 as MDV2
+
 # excape markdown
 from telegram.utils.helpers import escape_markdown
 
@@ -65,7 +68,7 @@ from db import engine
 from db.models import Chat
 
 # import link types and other info
-from extra import *
+from extra import LinkType, link_dict, TwitterStyle
 
 # import fake headers
 from extra.helper import fake_headers
@@ -296,7 +299,7 @@ def command_help(update: Update, _) -> None:
     )
 
 
-def command_instagram_hd(update: Update, _) -> None:
+def command_in_hd(update: Update, _) -> None:
     """Enables/Disables Instagram HD mode"""
     notify(update, command="/command_instagram_hd")
     send_reply(
@@ -305,7 +308,7 @@ def command_instagram_hd(update: Update, _) -> None:
     )
 
 
-def command_twitter_hd(update: Update, _) -> None:
+def command_tw_hd(update: Update, _) -> None:
     """Enables/Disables Twitter HD mode"""
     notify(update, command="/command_twitter_hd")
     send_reply(
@@ -314,7 +317,7 @@ def command_twitter_hd(update: Update, _) -> None:
     )
 
 
-def command_tiktok_hd(update: Update, _) -> None:
+def command_tt_hd(update: Update, _) -> None:
     """Enables/Disables TikTok HD mode"""
     notify(update, command="/command_tiktok_hd")
     send_reply(
@@ -330,6 +333,29 @@ def command_include_link(update: Update, _) -> None:
         update,
         f"Including source is *{_switch[toggler(update, 'include_link')]}*\\.",
     )
+
+
+def command_tw_style(update: Update, _) -> None:
+    """Change twitter style."""
+    notify(update, command="/twitter_style")
+    # get old and new styles
+    with Session(engine) as s:
+        u = s.get(Chat, update.effective_chat.id)
+        style = TwitterStyle.styles[(u.tw_style + 1) % len(TwitterStyle.styles)]
+        u.tw_style = style
+        s.commit()
+    # demonstrate new style
+    link = esc("https://twitter.com/")
+    match style:
+        case TwitterStyle.IMAGE_LINK:
+            style = "\\[ `Image(s)` \\]\n\nLink"
+        case TwitterStyle.IMAGE_INFO_EMBED_LINK:
+            style = f"\\[ `Image(s)` \\]\n\n[Author \\| @Username]({link})"
+        case TwitterStyle.IMAGE_INFO_EMBED_LINK_DESC:
+            style = f"\\[ `Image(s)` \\]\n\n[Author \\| @Username]({link})\n\nDescription"
+        case _:
+            style = "Unknown"
+    send_reply(update, f"_Twitter style has been changed to_\\:\n\n{style}")
 
 
 def inliner(update: Update, context: CallbackContext) -> None:
@@ -398,7 +424,7 @@ SEND_DELAY = 5
 IMAGE_LIMIT = 2560
 
 
-def convert_to_png(image: bytes, filename: str = "temp"):
+def to_png(image: bytes, filename: str = "temp") -> bytes:
     # check extension
     file_ext = magic.from_buffer(image, mime=True).split("/")[1]
     log.info(f"Image extension: %s.", file_ext)
@@ -419,12 +445,12 @@ def convert_to_png(image: bytes, filename: str = "temp"):
     return image
 
 
-def send_twitter(
+def send_tw(
     update: Update,
     context: CallbackContext,
     link: Link,
     chat: Chat,
-):
+) -> None:
     mes = update.effective_message
     reply = {
         "reply_to_message_id": None if chat.include_link else mes.message_id,
@@ -432,7 +458,6 @@ def send_twitter(
     }
     if media := get_twitter_links(link.id):
         log.debug("Twitter media info: %s.", media)
-        info = media.source if chat.include_link else None
         if media.media == "photo":
             photos, documents = [], []
             for photo in media.links:
@@ -452,7 +477,7 @@ def send_twitter(
                 # log.debug("Full ext: %r.", magic.from_buffer(file.content))
                 photos.append(
                     InputMediaPhoto(
-                        convert_to_png(image=file.content, filename=filename)
+                        to_png(image=file.content, filename=filename)
                     )
                 )
                 documents.append(
@@ -463,8 +488,26 @@ def send_twitter(
                     )
                 )
             log.debug("Finished adding to collection.")
-            log.debug("Changing caption to %r.", link.link)
+            info = None
+            if chat.include_link:
+                _link, _user, _username, _desc = (
+                    esc(media.source),
+                    esc(media.user),
+                    esc(media.username),
+                    esc(media.desc),
+                )
+                match chat.tw_style:
+                    case TwitterStyle.IMAGE_LINK:
+                        info = _link
+                    case TwitterStyle.IMAGE_INFO_EMBED_LINK:
+                        info = f"[{_user} \\| @{_username}]({_link})"
+                    case TwitterStyle.IMAGE_INFO_EMBED_LINK_DESC:
+                        info = f"[{_user} \\| @{_username}]({_link})\n\n{_desc}"
+                    case _:
+                        info = link
+            log.debug("Changing caption to %r.", info)
             photos[0].caption = info
+            photos[0].parse_mode = MDV2
             log.debug("Sending media group...")
             if chat.type == "private":
                 update.message.chat.send_action(ChatAction.UPLOAD_PHOTO)
@@ -495,12 +538,12 @@ def send_twitter(
     send_error(update, text)
 
 
-def send_tiktok(
+def send_tt(
     update: Update,
     context: CallbackContext,
     link: Link,
     chat: Chat,
-):
+) -> None:
     mes = update.effective_message
     reply = {
         "reply_to_message_id": None if chat.include_link else mes.message_id,
@@ -560,12 +603,12 @@ def send_tiktok(
     send_error(update, text)
 
 
-def send_instagram(
+def send_in(
     update: Update,
     context: CallbackContext,
     link: Link,
     chat: Chat,
-):
+) -> None:
     mes = update.effective_message
     reply = {
         "reply_to_message_id": None if chat.include_link else mes.message_id,
@@ -592,11 +635,7 @@ def send_instagram(
                 )
                 log.debug("Filename: %r.", filename)
                 # log.debug("Full ext: %r.", magic.from_buffer(file.content))
-                files.append(
-                    InputMediaPhoto(
-                        convert_to_png(image=file.content, filename=filename)
-                    )
-                )
+                files.append(InputMediaPhoto(to_png(file.content, filename)))
                 documents.append(
                     InputMediaDocument(
                         media=file.content,
@@ -676,11 +715,11 @@ def echo(update: Update, context: CallbackContext) -> None:
     for link in formatter(text):
         match link.type:
             case LinkType.INSTAGRAM:
-                send_instagram(update, context, link, chat)
+                send_in(update, context, link, chat)
             case LinkType.TIKTOK:
-                send_tiktok(update, context, link, chat)
+                send_tt(update, context, link, chat)
             case LinkType.TWITTER:
-                send_twitter(update, context, link, chat)
+                send_tw(update, context, link, chat)
             case _:
                 send_reply(update, esc(link.link))
         # anti-flood control
@@ -722,13 +761,16 @@ def main() -> None:
     dispatcher.add_handler(CommandHandler("help", command_help))
 
     # toggle hd quality for instagram
-    dispatcher.add_handler(CommandHandler("instagram_hd", command_instagram_hd))
+    dispatcher.add_handler(CommandHandler("instagram_hd", command_in_hd))
 
     # toggle hd quality for twitter
-    dispatcher.add_handler(CommandHandler("twitter_hd", command_twitter_hd))
+    dispatcher.add_handler(CommandHandler("twitter_hd", command_tw_hd))
+
+    # cycle through twitter styles
+    dispatcher.add_handler(CommandHandler("twitter_style", command_tw_style))
 
     # toggle hd quality for tiktok
-    dispatcher.add_handler(CommandHandler("tiktok_hd", command_tiktok_hd))
+    dispatcher.add_handler(CommandHandler("tiktok_hd", command_tt_hd))
 
     # toggle including links
     dispatcher.add_handler(CommandHandler("include_link", command_include_link))

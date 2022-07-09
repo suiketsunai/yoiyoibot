@@ -23,6 +23,19 @@ class LinkType:
         return value in cls.types
 
 
+# twitter styles
+class TwitterStyle:
+    styles = (
+        IMAGE_LINK,
+        IMAGE_INFO_EMBED_LINK,
+        IMAGE_INFO_EMBED_LINK_DESC,
+    ) = range(3)
+
+    @classmethod
+    def validate(cls, value: int):
+        return value in cls.styles
+
+
 # link dictionary
 link_dict = {
     "twitter": {
