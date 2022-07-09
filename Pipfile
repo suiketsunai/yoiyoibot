@@ -16,6 +16,7 @@ requests = "*"
 python-magic = "*"
 setuptools = "*"
 ffmpeg-python = "*"
+pillow = "*"
 
 [dev-packages]
 black = "*"

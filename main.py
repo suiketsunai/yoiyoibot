@@ -55,6 +55,9 @@ from telegram.utils.helpers import escape_markdown
 # working with database
 from sqlalchemy.orm import Session
 
+# working with images
+from PIL import Image
+
 # import engine
 from db import engine
 
@@ -388,7 +391,32 @@ def inliner(update: Update, context: CallbackContext) -> None:
 # telegram text message handlers
 ################################################################################
 
+# max delay between messages
 SEND_DELAY = 5
+
+# max image side length
+IMAGE_LIMIT = 2560
+
+
+def convert_to_png(image: bytes, filename: str = "temp"):
+    # check extension
+    file_ext = magic.from_buffer(image, mime=True).split("/")[1]
+    log.info(f"Image extension: %s.", file_ext)
+    # convert if needed
+    if file_ext != "png":
+        # save as file
+        file = file_dir / f"{filename}.{file_ext}"
+        file.write_bytes(image)
+        log.debug("Fitting into %d x %d size...", IMAGE_LIMIT, IMAGE_LIMIT)
+        try:
+            image = Image.open(file)
+            image.thumbnail([IMAGE_LIMIT, IMAGE_LIMIT])
+            image.save(file, format="png", optimize=True)
+        except Exception as ex:
+            log.error("Exception occured: %s.", ex)
+        image = file.read_bytes()
+        file.unlink()
+    return image
 
 
 def send_twitter(
@@ -416,13 +444,17 @@ def send_twitter(
                     allow_redirects=True,
                 )
                 log.debug("Adding content to collection...")
-                photos.append(InputMediaPhoto(file.content))
                 filename = "{}.{}".format(
                     re.search(link_dict["twitter"]["file"], photo)["id"],
                     magic.from_buffer(file.content, mime=True).split("/")[1],
                 )
                 log.debug("Filename: %r.", filename)
                 # log.debug("Full ext: %r.", magic.from_buffer(file.content))
+                photos.append(
+                    InputMediaPhoto(
+                        convert_to_png(image=file.content, filename=filename)
+                    )
+                )
                 documents.append(
                     InputMediaDocument(
                         media=file.content,
@@ -488,14 +520,15 @@ def send_tiktok(
                 headers=fake_headers,
                 allow_redirects=True,
             )
-            file = file_dir / f"{video.id}-{update.effective_message.chat_id}"
-            # save
-            file.write_bytes(vid.content)
             # check extension
-            file_ext = magic.from_file(str(file))
-            log.info(f"File extension: {file_ext}")
+            file_ext = magic.from_buffer(vid.content, mime=True).split("/")[1]
+            log.info(f"File extension: %s.", file_ext)
+            # save as file
+            filename = f"{video.id}-{mes.chat_id}.{file_ext}"
+            file = file_dir / filename
+            file.write_bytes(vid.content)
             # convert if needed
-            if "mp4" not in file_ext.lower():
+            if file_ext != "mp4":
                 mp4 = file_dir / f"{video.id}.mp4"
                 log.info("Converting...")
                 ffmpeg.input(str(file)).output(str(mp4)).run()
@@ -507,7 +540,11 @@ def send_tiktok(
             if chat.type == "private":
                 update.message.chat.send_action(ChatAction.UPLOAD_VIDEO)
             # upload
-            context.bot.send_video(**reply, caption=info)
+            context.bot.send_video(
+                **reply,
+                caption=info,
+                filename=f"{video.id}.mp4",
+            )
             # delete
             file.unlink()
             return
@@ -549,13 +586,17 @@ def send_instagram(
             if item.type == "image":
                 if chat.type == "private":
                     update.message.chat.send_action(ChatAction.UPLOAD_PHOTO)
-                files.append(InputMediaPhoto(file.content))
                 filename = "{}.{}".format(
                     re.search(link_dict["instagram"]["file"], item.link)["id"],
                     magic.from_buffer(file.content, mime=True).split("/")[1],
                 )
                 log.debug("Filename: %r.", filename)
                 # log.debug("Full ext: %r.", magic.from_buffer(file.content))
+                files.append(
+                    InputMediaPhoto(
+                        convert_to_png(image=file.content, filename=filename)
+                    )
+                )
                 documents.append(
                     InputMediaDocument(
                         media=file.content,
