@@ -1,4 +1,4 @@
-\[ `HELP v\.1\.0` *\:* `2022\.03\.28` \]
+\[ `HELP v\.2\.0` *\:* `2022\.07\.09` \]
 
 /help — show this very message\.
 
@@ -15,3 +15,7 @@ If you send _*several*_ links at once in one message, *all links will be* ||_hop
 /instagram\_hd \(_default_\: *off*\) — toggle this on if you want to get instagram photos as documents\.
 
 /include\_link \(_default_\: *off*\) — toggle this on if you want to use source link as a caption to messages\.
+
+\[ `OTHER COMMANDS` \]
+
+/twitter\_style — cycle twitter post styles\. Only *3 styles* are available\.
