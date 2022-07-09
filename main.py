@@ -445,6 +445,22 @@ def to_png(image: bytes, filename: str = "temp") -> bytes:
     return image
 
 
+def get_text(update: Update):
+    return "|".join(
+        text
+        for text in [
+            update.effective_message.text,
+            update.effective_message.caption,
+        ]
+        + [
+            entity.url
+            for entity in update.effective_message.entities
+            + update.effective_message.caption_entities
+        ]
+        if text
+    )
+
+
 def send_tw(
     update: Update,
     context: CallbackContext,
@@ -683,14 +699,13 @@ def echo(update: Update, context: CallbackContext) -> None:
         context (CallbackContext): telegram context object
     """
     notify(update, func="echo")
-    # get message
-    mes = update.effective_message
+    # get chat
     cht = update.effective_chat
-    # if no text
-    if not ((text := mes.text) or (text := mes.caption)):
-        log.info("Echo: No text.")
-        return
-
+    # check for text
+    if not (text := get_text(update)):
+        # no text found!
+        return log.info("Echo: No text.")
+    log.debug("Echo: Received text: %r.", text)
     with Session(engine) as session:
         is_not_user = cht.id < 0
         if not (chat := session.get(Chat, cht.id)):
@@ -701,6 +716,7 @@ def echo(update: Update, context: CallbackContext) -> None:
                     name=cht.title if is_not_user else cht.full_name,
                     chat_link=cht.username,
                     tw_orig=is_not_user,
+                    tw_style=2 if is_not_user else 0,
                     tt_orig=is_not_user,
                     in_orig=is_not_user,
                     include_link=is_not_user,
