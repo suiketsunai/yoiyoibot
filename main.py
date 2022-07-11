@@ -5,11 +5,7 @@ import time
 import logging
 
 from pathlib import Path
-from datetime import datetime
 from functools import partial
-
-# working with env
-from dotenv import load_dotenv
 
 # http requests
 import requests
@@ -68,7 +64,7 @@ from db.models import Chat
 from extra import LinkType, link_dict, TwitterStyle
 
 # settings
-from extra.loggers import root_log
+from extra.loggers import root_log, file_dir
 
 # import fake headers
 from extra.helper import fake_headers
@@ -87,13 +83,6 @@ from extra.instagram import get_instagram_links
 
 # uploading media
 from extra.upload import upload_log
-
-# current timestamp & this file directory
-date_run = datetime.now()
-file_dir = Path(__file__).parent
-
-# load .env file & get config
-load_dotenv()
 
 # setup logger
 log = logging.getLogger("yoiyoi.app")
