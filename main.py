@@ -474,6 +474,23 @@ def send_tw(
     }
     if media := get_twitter_links(link.id):
         log.debug("Twitter media info: %s.", media)
+        info = None
+        if chat.include_link:
+            _link, _user, _username, _desc = (
+                esc(media.source),
+                esc(media.user),
+                esc(media.username),
+                esc(media.desc),
+            )
+            match chat.tw_style:
+                case TwitterStyle.IMAGE_LINK:
+                    info = _link
+                case TwitterStyle.IMAGE_INFO_EMBED_LINK:
+                    info = f"[{_user} \\| @{_username}]({_link})"
+                case TwitterStyle.IMAGE_INFO_EMBED_LINK_DESC:
+                    info = f"[{_user} \\| @{_username}]({_link})\n\n{_desc}"
+                case _:
+                    info = _link
         if media.media == "photo":
             photos, documents = [], []
             for photo in media.links:
@@ -504,23 +521,6 @@ def send_tw(
                     )
                 )
             log.debug("Finished adding to collection.")
-            info = None
-            if chat.include_link:
-                _link, _user, _username, _desc = (
-                    esc(media.source),
-                    esc(media.user),
-                    esc(media.username),
-                    esc(media.desc),
-                )
-                match chat.tw_style:
-                    case TwitterStyle.IMAGE_LINK:
-                        info = _link
-                    case TwitterStyle.IMAGE_INFO_EMBED_LINK:
-                        info = f"[{_user} \\| @{_username}]({_link})"
-                    case TwitterStyle.IMAGE_INFO_EMBED_LINK_DESC:
-                        info = f"[{_user} \\| @{_username}]({_link})\n\n{_desc}"
-                    case _:
-                        info = link
             log.debug("Changing caption to %r.", info)
             photos[0].caption = info
             photos[0].parse_mode = MDV2
