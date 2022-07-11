@@ -9,22 +9,22 @@ form = "%(asctime)s > %(name)s [%(levelname)s]: %(message)s"
 [log.sqlalchemy.engine]
 # SQL echoing
 enable = true
-level = "INFO"
+level = "WARNING"
 
 [log.sqlalchemy.pool]
 # connection pool logging
 enable = true
-level = "INFO"
+level = "WARNING"
 
 [log.sqlalchemy.dialects]
 # custom logging for SQL dialects
 enable = true
-level = "INFO"
+level = "WARNING"
 
 [log.sqlalchemy.orm]
 # logging of various ORM functions
 enable = true
-level = "INFO"
+level = "WARNING"
 
 [log.file]
 # enable logging to file
