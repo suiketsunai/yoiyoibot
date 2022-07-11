@@ -544,7 +544,12 @@ def send_tw(
         else:
             # send video and gifs as is
             for media in media.links:
-                context.bot.send_document(**reply, caption=info, document=media)
+                context.bot.send_document(
+                    **reply,
+                    caption=info,
+                    document=media,
+                    parse_mode=MDV2,
+                )
         return
     else:
         text = (
