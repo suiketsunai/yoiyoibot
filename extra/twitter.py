@@ -108,7 +108,7 @@ def get_twitter_links(tid: int | str) -> TwitterMedia:
             "duration_ms",
         ],
     )
-    log.debug("Response: %s.", res)
+    log.debug("Response: %r.", res)
     if error := res.errors:
         log.error("%s: %s", error[0]["title"], error[0]["detail"])
         return None
@@ -121,10 +121,9 @@ def get_twitter_links(tid: int | str) -> TwitterMedia:
     if not links[0]:
         log.warning("Unexpected error occured: no links.")
         return None
-    text = res.data.text
+    text = res.data.text.rsplit(res.data.entities["urls"][-1]["url"], 1)[0]
     for url in res.data.entities["urls"][:-1]:
         text = text.replace(url["url"], url["expanded_url"])
-    text = text.replace(res.data.entities["urls"][-1]["url"], "")
     return TwitterMedia(
         link_dict["twitter"]["link"].format(id=tid, author=user.username),
         link_dict["twitter"]["type"],
