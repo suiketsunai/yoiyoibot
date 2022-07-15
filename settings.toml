@@ -2,7 +2,7 @@
 
 [log]
 # see logging levels
-level = "DEBUG"
+level = "INFO"
 # see formatting settings
 form = "%(asctime)s > %(name)s [%(levelname)s]: %(message)s"
 
@@ -30,7 +30,7 @@ level = "WARNING"
 # enable logging to file
 enable = true
 # see logging levels
-level = "DEBUG"
+level = "INFO"
 # see formatting settings
 form = "%(asctime)s > %(name)s [%(levelname)s]: %(message)s"
 # date format

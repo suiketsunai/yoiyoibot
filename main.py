@@ -141,6 +141,7 @@ def notify(
     command: str = None,
     func: str = None,
     inline: bool = False,
+    toggle: tuple[str, bool] = None,
 ) -> None:
     """Log that something hapened
 
@@ -150,24 +151,32 @@ def notify(
     """
     if inline:
         return log.info(
-            "Inline mode was invoked by %r [%r].",
-            update.effective_user.full_name,
+            "[%d] %r invoked inline mode.",
             update.effective_user.id,
+            update.effective_user.full_name,
         )
     cht = update.effective_chat
     if command:
         return log.info(
-            "%r command was called by %r [%r].",
-            command,
-            cht.title if cht.id < 0 else cht.full_name,
+            "[%d] %r called command: %r.",
             cht.id,
+            cht.full_name or cht.title,
+            command,
         )
     if func:
         return log.info(
-            "%r function was called by %r [%r].",
-            func,
-            cht.title if cht.id < 0 else cht.full_name,
+            "[%d] %r called function: %r.",
             cht.id,
+            cht.full_name or cht.title,
+            func,
+        )
+    if toggle:
+        return log.info(
+            "[%d] %r called toggler: %r is now %s.",
+            cht.id,
+            cht.full_name or cht.title,
+            toggle[0],
+            _switch[toggle[1]],
         )
 
 
@@ -205,10 +214,36 @@ def toggler(update: Update, attr: str) -> bool:
     """
     with Session(engine) as s:
         u = s.get(Chat, update.effective_chat.id)
-        state = getattr(u, attr)
-        setattr(u, attr, not state)
+        state = not getattr(u, attr)
+        setattr(u, attr, state)
         s.commit()
-        return not state
+        notify(update, toggle=(attr, state))
+        return state
+
+
+def get_chat(cht: Chat):
+    with Session(engine) as session:
+        is_not_user = cht.id < 0
+        if not (chat := session.get(Chat, cht.id)):
+            session.add(
+                chat := Chat(
+                    id=cht.id,
+                    type=cht.type,
+                    name=cht.title if is_not_user else cht.full_name,
+                    chat_link=cht.username,
+                    tw_orig=is_not_user,
+                    tw_style=2 if is_not_user else 0,
+                    tt_orig=is_not_user,
+                    in_orig=is_not_user,
+                    include_link=is_not_user,
+                )
+            )
+        else:
+            chat.name = cht.title if is_not_user else cht.full_name
+            chat.chat_link = cht.username
+        session.commit()
+        log.debug(chat)
+    return chat
 
 
 ################################################################################
@@ -219,22 +254,11 @@ def toggler(update: Update, attr: str) -> bool:
 def command_start(update: Update, _) -> None:
     """Start the bot"""
     notify(update, command="/start")
-    cht = update.effective_chat
-    with Session(engine) as s:
-        if not s.get(Chat, cht.id):
-            s.add(
-                Chat(
-                    id=cht.id,
-                    type=cht.type,
-                    name=cht.title if cht.id < 0 else cht.full_name,
-                    chat_link=cht.username,
-                )
-            )
-            s.commit()
+    get_chat(update.effective_chat)
     update.effective_message.reply_markdown_v2(
         text=f"Yo\\~, {update.effective_user.mention_markdown_v2()}\\!\n"
         "I'm *Yoi Yoi* chan\\! 🎉\n"
-        "Call for \\/help if in need\\!",
+        "Call for /help if in need\\!",
     )
 
 
@@ -314,10 +338,15 @@ def inliner(update: Update, context: CallbackContext) -> None:
     """
     notify(update, inline=True)
     if not (links := formatter(update.inline_query.query)):
-        log.info("Inline: No query.")
-        return
+        return log.info("Inline: No query.")
     results = []
     for in_id, in_link in enumerate(links, 1):
+        log.info(
+            "Inline: [#%02d] Received %s link: %s.",
+            in_id,
+            LinkType.getType(in_link.type),
+            in_link.link,
+        )
         data = {
             "id": str(in_id),
             "title": f"#{in_id}: {LinkType.getType(in_link.type)} link",
@@ -336,6 +365,7 @@ def inliner(update: Update, context: CallbackContext) -> None:
                     )
                     try:
                         results.append(InlineQueryResultVideo(**data))
+                        log.info("Inline: [#%02d] Appended video.", in_id)
                         continue
                     # if telegram couldn't get file
                     except BadRequest:
@@ -346,6 +376,7 @@ def inliner(update: Update, context: CallbackContext) -> None:
             # if there is no video
             else:
                 text = "This tiktok can't be found or downloaded."
+            log.info("Inline: [#%02d] Error: %s.", in_id, text)
         # send link if anything else
         else:
             text = in_link.link
@@ -419,13 +450,17 @@ def send_tw(
     link: Link,
     chat: Chat,
 ) -> None:
+    notify(update, func="send_twitter")
+    # prepare data
     mes = update.effective_message
     reply = {
         "reply_to_message_id": None if chat.include_link else mes.message_id,
         "chat_id": mes.chat_id,
     }
+    # get media
+    log.info("Send Twitter: Link: %s.", link.link)
     if media := get_twitter_links(link.id):
-        log.debug("Twitter media info: %s.", media)
+        log.debug("Send Twitter: Media info: %r.", media)
         info = None
         if chat.include_link:
             _link, _user, _username, _desc = (
@@ -446,20 +481,23 @@ def send_tw(
         if media.media == "photo":
             photos, documents = [], []
             for photo in media.links:
-                log.debug("Link: %r.", photo)
-                log.debug("Downloading...")
+                log.debug("Send Twitter: Link: %r.", photo)
+                log.debug("Send Twitter: Downloading...")
                 file = requests.get(
                     url=photo,
                     headers=fake_headers,
                     allow_redirects=True,
                 )
-                log.debug("Adding content to collection...")
+                log.debug("Send Twitter: Adding content to collection...")
                 filename = "{}.{}".format(
                     re.search(link_dict["twitter"]["file"], photo)["id"],
                     magic.from_buffer(file.content, mime=True).split("/")[1],
                 )
-                log.debug("Filename: %r.", filename)
-                # log.debug("Full ext: %r.", magic.from_buffer(file.content))
+                log.debug("Send Twitter: Filename: %r.", filename)
+                log.info(
+                    "Send Twitter: File extension: %s.",
+                    magic.from_buffer(file.content),
+                )
                 photos.append(
                     InputMediaPhoto(
                         to_png(image=file.content, filename=filename)
@@ -472,11 +510,11 @@ def send_tw(
                         disable_content_type_detection=True,
                     )
                 )
-            log.debug("Finished adding to collection.")
-            log.debug("Changing caption to %r.", info)
+            log.debug("Send Twitter: Finished adding to collection.")
+            log.debug("Send Twitter: Changing caption to %r.", info)
             photos[0].caption = info
             photos[0].parse_mode = MDV2
-            log.debug("Sending media group...")
+            log.info("Send Twitter: Sending media group...")
             if chat.type == "private":
                 mes.chat.send_action(ChatAction.UPLOAD_PHOTO)
             # send photo group
@@ -484,6 +522,7 @@ def send_tw(
             # send document group
             if chat.tw_orig and post:
                 # documents[-1].caption = info
+                log.info("Send Twitter: Sending document group...")
                 send_media_group(
                     update,
                     context,
@@ -493,6 +532,7 @@ def send_tw(
                 )
         else:
             # send video and gifs as is
+            log.info("Send Twitter: Sending media as is...")
             for media in media.links:
                 context.bot.send_document(
                     **reply,
@@ -506,6 +546,7 @@ def send_tw(
             f"[This twitter content]({link.link}) can't be found or "
             "downloaded\\. If this seems to be wrong, try again later\\."
         )
+        log.error("Send Twitter: Couldn't get content.")
     send_error(update, text)
 
 
@@ -515,11 +556,15 @@ def send_tt(
     link: Link,
     chat: Chat,
 ) -> None:
+    notify(update, func="send_tiktok")
+    # prepare data
     mes = update.effective_message
     reply = {
         "reply_to_message_id": None if chat.include_link else mes.message_id,
         "chat_id": mes.chat_id,
     }
+    # get media
+    log.info("Send Tiktok: Link: %s.", link.link)
     if video := get_tiktok_links(link.link):
         info = video.source if chat.include_link else None
         # check size
@@ -536,7 +581,7 @@ def send_tt(
             )
             # check extension
             file_ext = magic.from_buffer(vid.content, mime=True).split("/")[1]
-            log.info(f"File extension: %s.", file_ext)
+            log.info("Send Tiktok: File extension: %s.", file_ext)
             # save as file
             filename = f"{video.id}-{mes.chat_id}.{file_ext}"
             file = file_dir / filename
@@ -544,7 +589,7 @@ def send_tt(
             # convert if needed
             if file_ext != "mp4":
                 mp4 = file_dir / f"{video.id}.mp4"
-                log.info("Converting...")
+                log.info("Send Tiktok: Converting...")
                 ffmpeg.input(str(file)).output(str(mp4)).run()
                 reply["video"] = mp4.read_bytes()
                 mp4.unlink()
@@ -554,6 +599,7 @@ def send_tt(
             if chat.type == "private":
                 mes.chat.send_action(ChatAction.UPLOAD_VIDEO)
             # upload
+            log.info("Send Tiktok: Sending video...")
             context.bot.send_video(
                 **reply,
                 caption=info,
@@ -571,6 +617,7 @@ def send_tt(
             f"[This tiktok content]({link.link}) can't be found or "
             "downloaded\\. If this seems to be wrong, try again later\\."
         )
+        log.error("Send Tiktok: Couldn't get content.")
     send_error(update, text)
 
 
@@ -580,23 +627,27 @@ def send_in(
     link: Link,
     chat: Chat,
 ) -> None:
+    notify(update, func="send_instagram")
+    # prepare data
     mes = update.effective_message
     reply = {
         "reply_to_message_id": None if chat.include_link else mes.message_id,
         "chat_id": mes.chat_id,
     }
+    # get media
+    log.info("Send Instagram: Link: %s.", link.link)
     if media := get_instagram_links(link.link):
         files, documents = [], []
         info = media[0].source if chat.include_link else None
         for item in media:
-            log.debug("Link: %r.", item.link)
-            log.debug("Downloading...")
+            log.debug("Send Instagram: Link: %s.", item.link)
+            log.debug("Send Instagram: Downloading...")
             file = requests.get(
                 item.link,
                 headers=fake_headers,
                 allow_redirects=True,
             )
-            log.debug("Adding content to collection...")
+            log.debug("Send Instagram: Adding content to collection...")
             if item.type == "image":
                 if chat.type == "private":
                     mes.chat.send_action(ChatAction.UPLOAD_PHOTO)
@@ -604,8 +655,11 @@ def send_in(
                     re.search(link_dict["instagram"]["file"], item.link)["id"],
                     magic.from_buffer(file.content, mime=True).split("/")[1],
                 )
-                log.debug("Filename: %r.", filename)
-                # log.debug("Full ext: %r.", magic.from_buffer(file.content))
+                log.debug("Send Instagram: Filename: %r.", filename)
+                log.info(
+                    "Send Instagram: File extension: %s.",
+                    magic.from_buffer(file.content),
+                )
                 files.append(InputMediaPhoto(to_png(file.content, filename)))
                 documents.append(
                     InputMediaDocument(
@@ -618,15 +672,16 @@ def send_in(
                 if chat.type == "private":
                     mes.chat.send_action(ChatAction.UPLOAD_VIDEO)
                 files.append(InputMediaVideo(file.content))
-        log.debug("Finished adding to collection.")
-        log.debug("Changing caption to: %r.", link.link)
+        log.debug("Send Instagram: Finished adding to collection.")
+        log.debug("Send Instagram: Changing caption to: %r.", info)
         files[0].caption = info
-        log.debug("Sending media group...")
+        log.info("Send Instagram: Sending media group...")
         # send file group
         post = send_media_group(update, context, **reply, media=files)
         # send document group
         if chat.in_orig and documents and post:
             # documents[-1].caption = info
+            log.info("Send Instagram: Sending document group...")
             send_media_group(
                 update,
                 context,
@@ -641,6 +696,7 @@ def send_in(
             f"[This instagram content]({link.link}) can't be found or "
             "downloaded\\. If this seems to be wrong, try again later\\."
         )
+        log.error("Send Instagram: Couldn't get content.")
     send_error(update, text)
 
 
@@ -652,35 +708,12 @@ def echo(update: Update, context: CallbackContext) -> None:
         context (CallbackContext): telegram context object
     """
     notify(update, func="echo")
-    # get chat
-    cht = update.effective_chat
     # check for text
     if not (text := get_text(update)):
         # no text found!
         return log.info("Echo: No text.")
     log.debug("Echo: Received text: %r.", text)
-    with Session(engine) as session:
-        is_not_user = cht.id < 0
-        if not (chat := session.get(Chat, cht.id)):
-            session.add(
-                chat := Chat(
-                    id=cht.id,
-                    type=cht.type,
-                    name=cht.title if is_not_user else cht.full_name,
-                    chat_link=cht.username,
-                    tw_orig=is_not_user,
-                    tw_style=2 if is_not_user else 0,
-                    tt_orig=is_not_user,
-                    in_orig=is_not_user,
-                    include_link=is_not_user,
-                )
-            )
-        else:
-            chat.name = cht.title if is_not_user else cht.full_name
-            chat.chat_link = cht.username
-        session.commit()
-        log.debug(chat)
-
+    chat = get_chat(update.effective_chat)
     for link in formatter(text):
         match link.type:
             case LinkType.INSTAGRAM:

@@ -107,7 +107,7 @@ link_dict = {
             (?:instagram\.com|instagr\.(?:am|com))\/
             (?:p|reel|tv)\/
         )
-        (?P<id>[\w\-]+)
+        (?P<id>[\w\-]{11})
         """,
         "file": r"""(?x)
         (?:
