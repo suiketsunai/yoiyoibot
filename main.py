@@ -223,6 +223,7 @@ def toggler(update: Update, attr: str) -> bool:
 
 def get_chat(cht: Chat):
     with Session(engine) as session:
+        session.expire_on_commit = False
         is_not_user = cht.id < 0
         if not (chat := session.get(Chat, cht.id)):
             session.add(
