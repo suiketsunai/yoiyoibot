@@ -40,7 +40,7 @@ from telegram.ext import (
 )
 
 # bad request exception
-from telegram.error import BadRequest
+from telegram.error import BadRequest, RetryAfter
 
 # telegram constants
 from telegram.constants import PARSEMODE_MARKDOWN_V2 as MDV2
@@ -364,9 +364,6 @@ def inliner(update: Update, context: CallbackContext) -> None:
 # telegram text message handlers
 ################################################################################
 
-# max delay between messages
-SEND_DELAY = 5
-
 # max image side length
 IMAGE_LIMIT = 2560
 
@@ -406,6 +403,20 @@ def get_text(update: Update):
         ]
         if text
     )
+
+
+def send_media_group(update: Update, context: CallbackContext, **kwargs):
+    while True:
+        try:
+            return context.bot.send_media_group(**kwargs)
+        except RetryAfter as ex:
+            log.warning("Exception occured: %s.", ex)
+            time.sleep(ex.retry_after)
+            continue
+        except Exception as ex:
+            log.error("Exception occured: %s.", ex)
+            send_error(update, "Couldn't send message, try again later\\.")
+            return
 
 
 def send_tw(
@@ -475,19 +486,17 @@ def send_tw(
             if chat.type == "private":
                 update.message.chat.send_action(ChatAction.UPLOAD_PHOTO)
             # send photo group
-            post = context.bot.send_media_group(**reply, media=photos)
-            # anti-flood control
-            time.sleep(len(photos) * SEND_DELAY)
+            post = send_media_group(update, context, **reply, media=photos)
             # send document group
             if chat.tw_orig and post:
                 # documents[-1].caption = info
-                context.bot.send_media_group(
+                send_media_group(
+                    update,
+                    context,
                     chat_id=mes.chat_id,
                     reply_to_message_id=post[0].message_id,
                     media=documents,
                 )
-                # anti-flood control
-                time.sleep(len(documents) * SEND_DELAY)
         else:
             # send video and gifs as is
             for media in media.links:
@@ -500,7 +509,7 @@ def send_tw(
         return
     else:
         text = (
-            f"[This twitter content]({link.link}) can\\'t be found or "
+            f"[This twitter content]({link.link}) can't be found or "
             "downloaded\\. If this seems to be wrong, try again later\\."
         )
     send_error(update, text)
@@ -565,7 +574,7 @@ def send_tt(
     # if there is no video
     else:
         text = (
-            f"[This tiktok content]({link.link}) can\\'t be found or "
+            f"[This tiktok content]({link.link}) can't be found or "
             "downloaded\\. If this seems to be wrong, try again later\\."
         )
     send_error(update, text)
@@ -620,24 +629,22 @@ def send_in(
         files[0].caption = info
         log.debug("Sending media group...")
         # send file group
-        post = context.bot.send_media_group(**reply, media=files)
-        # anti-flood control
-        time.sleep(len(files) * SEND_DELAY)
+        post = send_media_group(update, context, **reply, media=files)
         # send document group
         if chat.in_orig and documents and post:
             # documents[-1].caption = info
-            context.bot.send_media_group(
+            send_media_group(
+                update,
+                context,
                 chat_id=mes.chat_id,
                 reply_to_message_id=post[0].message_id,
                 media=documents,
             )
-            # anti-flood control
-            time.sleep(len(documents) * SEND_DELAY)
         return
     # if no links returned
     else:
         text = (
-            f"[This instagram content]({link.link}) can\\'t be found or "
+            f"[This instagram content]({link.link}) can't be found or "
             "downloaded\\. If this seems to be wrong, try again later\\."
         )
     send_error(update, text)
@@ -690,8 +697,6 @@ def echo(update: Update, context: CallbackContext) -> None:
                 send_tw(update, context, link, chat)
             case _:
                 send_reply(update, esc(link.link))
-        # anti-flood control
-        time.sleep(2 * SEND_DELAY)
 
 
 ################################################################################
