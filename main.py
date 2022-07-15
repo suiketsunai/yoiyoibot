@@ -390,17 +390,11 @@ def to_png(image: bytes, filename: str = "temp") -> bytes:
 
 
 def get_text(update: Update):
+    mes = update.effective_message
     return "|".join(
         text
-        for text in [
-            update.effective_message.text,
-            update.effective_message.caption,
-        ]
-        + [
-            entity.url
-            for entity in update.effective_message.entities
-            + update.effective_message.caption_entities
-        ]
+        for text in [mes.text, mes.caption]
+        + [entity.url for entity in mes.entities + mes.caption_entities]
         if text
     )
 
@@ -411,7 +405,7 @@ def send_media_group(update: Update, context: CallbackContext, **kwargs):
             return context.bot.send_media_group(**kwargs)
         except RetryAfter as ex:
             log.warning("Exception occured: %s.", ex)
-            time.sleep(ex.retry_after)
+            time.sleep(ex.retry_after + 1)
             continue
         except Exception as ex:
             log.error("Exception occured: %s.", ex)
@@ -484,7 +478,7 @@ def send_tw(
             photos[0].parse_mode = MDV2
             log.debug("Sending media group...")
             if chat.type == "private":
-                update.message.chat.send_action(ChatAction.UPLOAD_PHOTO)
+                mes.chat.send_action(ChatAction.UPLOAD_PHOTO)
             # send photo group
             post = send_media_group(update, context, **reply, media=photos)
             # send document group
@@ -558,7 +552,7 @@ def send_tt(
                 reply["video"] = file.read_bytes()
             # notify user
             if chat.type == "private":
-                update.message.chat.send_action(ChatAction.UPLOAD_VIDEO)
+                mes.chat.send_action(ChatAction.UPLOAD_VIDEO)
             # upload
             context.bot.send_video(
                 **reply,
@@ -605,7 +599,7 @@ def send_in(
             log.debug("Adding content to collection...")
             if item.type == "image":
                 if chat.type == "private":
-                    update.message.chat.send_action(ChatAction.UPLOAD_PHOTO)
+                    mes.chat.send_action(ChatAction.UPLOAD_PHOTO)
                 filename = "{}.{}".format(
                     re.search(link_dict["instagram"]["file"], item.link)["id"],
                     magic.from_buffer(file.content, mime=True).split("/")[1],
@@ -622,7 +616,7 @@ def send_in(
                 )
             if item.type == "video":
                 if chat.type == "private":
-                    update.message.chat.send_action(ChatAction.UPLOAD_VIDEO)
+                    mes.chat.send_action(ChatAction.UPLOAD_VIDEO)
                 files.append(InputMediaVideo(file.content))
         log.debug("Finished adding to collection.")
         log.debug("Changing caption to: %r.", link.link)
