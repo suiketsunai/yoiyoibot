@@ -104,7 +104,10 @@ esc = partial(escape_markdown, version=2)
 def exception_handler(func):
     def handler(*args, **kwargs):
         tries = 1
-        while tries <= 3:
+        max_tries = 3
+        while tries <= max_tries:
+            if tries > 1:
+                log.info("Retrying (%d try)...", tries)
             try:
                 return func(*args, **kwargs)
             except RetryAfter as ex:
@@ -116,9 +119,9 @@ def exception_handler(func):
             except Exception as ex:
                 log.warning("Exception occured: %s.", ex)
                 time.sleep(15)
+                break
             finally:
                 tries += 1
-                log.info("Retrying (%d try)...", tries)
         else:
             args[0].effective_message.reply_markdown_v2(
                 reply_to_message_id=args[0].effective_message.message_id,
