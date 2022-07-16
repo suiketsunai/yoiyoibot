@@ -75,7 +75,7 @@ def get_twitter_links(tid: int | str) -> TwitterMedia:
     """Get illustration info with twitter api by id
 
     Args:
-        tweet_id (int): tweet id
+        tid (int): tweet id
 
     Returns:
         ArtWorkMedia: artwork object
@@ -110,19 +110,27 @@ def get_twitter_links(tid: int | str) -> TwitterMedia:
     )
     log.debug("Response: %r.", res)
     if error := res.errors:
-        log.error("%s: %s", error[0]["title"], error[0]["detail"])
-        return None
-    media = [media for media in res.includes["media"]]
+        return log.error("%s: %s", error[0]["title"], error[0]["detail"])
+    if not (media := res.includes.get("media", None)):
+        return log.error("Exception occured: No media.")
     user, kind = res.includes["users"][0], media[0].type
     if kind == "photo":
         links = get_twitter_media(tid, kind, [e.url for e in media])
     else:
         links = get_twitter_media(tid, kind)
     if not links[0]:
-        log.warning("Unexpected error occured: no links.")
-        return None
-    text = res.data.text.rsplit(res.data.entities["urls"][-1]["url"], 1)[0]
-    for url in res.data.entities["urls"][:-1]:
+        return log.error("Exception occured: No links.")
+    text, posttext = res.data.text.rsplit(
+        set(
+            url["url"]
+            for url in res.data.entities["urls"]
+            if url.get("media_key", None)
+        ).pop(),
+        1,
+    )
+    if len(posttext) > 0 and posttext[0] == " ":
+        text = "\n\n".join([text, posttext[1:]])
+    for url in res.data.entities["urls"]:
         text = text.replace(url["url"], url["expanded_url"])
     return TwitterMedia(
         link_dict["twitter"]["link"].format(id=tid, author=user.username),
