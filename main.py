@@ -105,14 +105,14 @@ def exception_handler(func):
     def handler(*args, **kwargs):
         while True:
             try:
-                func(*args, **kwargs)
+                return func(*args, **kwargs)
             except RetryAfter as ex:
                 log.warning("Exception occured: %s.", ex)
                 time.sleep(ex.retry_after + 1)
                 continue
             except TimedOut as ex:
                 log.error("Exception occured: %s.", ex)
-                time.sleep(5)
+                time.sleep(7)
                 continue
             except Exception as ex:
                 log.error("Exception occured: %s.", ex)
@@ -120,7 +120,7 @@ def exception_handler(func):
                     reply_to_message_id=args[0].effective_message.message_id,
                     text=f"\\[`ERROR`\\] Couldn't send message, try again later\\.",
                 )
-                break
+                return
 
     return handler
 
