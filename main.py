@@ -103,8 +103,8 @@ esc = partial(escape_markdown, version=2)
 
 def exception_handler(func):
     def handler(*args, **kwargs):
-        tries = 0
-        while tries < 3:
+        tries = 1
+        while tries <= 3:
             try:
                 return func(*args, **kwargs)
             except RetryAfter as ex:
@@ -115,14 +115,16 @@ def exception_handler(func):
                 time.sleep(7)
             except Exception as ex:
                 log.warning("Exception occured: %s.", ex)
-                time.sleep(5)
+                time.sleep(15)
             finally:
                 tries += 1
+                log.info("Retrying (%d try)...", tries)
         else:
-            return args[0].effective_message.reply_markdown_v2(
+            args[0].effective_message.reply_markdown_v2(
                 reply_to_message_id=args[0].effective_message.message_id,
                 text=f"\\[`ERROR`\\] Couldn't send message, try again later\\.",
             )
+            return None
 
     return handler
 
@@ -432,6 +434,9 @@ def to_png(image: bytes, filename: str = "temp") -> bytes:
     # check extension
     file_ext = magic.from_buffer(image, mime=True).split("/")[1]
     log.info(f"Image extension: %s.", file_ext)
+    # failed case
+    if file_ext == "xml":
+        log.info("XML: %r.", image.decode('utf-8'))
     # convert if needed
     if file_ext != "png":
         # save as file
