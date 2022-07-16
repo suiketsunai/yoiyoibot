@@ -103,24 +103,26 @@ esc = partial(escape_markdown, version=2)
 
 def exception_handler(func):
     def handler(*args, **kwargs):
-        while True:
+        tries = 0
+        while tries < 3:
             try:
                 return func(*args, **kwargs)
             except RetryAfter as ex:
                 log.warning("Exception occured: %s.", ex)
                 time.sleep(ex.retry_after + 1)
-                continue
             except TimedOut as ex:
-                log.error("Exception occured: %s.", ex)
+                log.warning("Exception occured: %s.", ex)
                 time.sleep(7)
-                continue
             except Exception as ex:
-                log.error("Exception occured: %s.", ex)
-                args[0].effective_message.reply_markdown_v2(
-                    reply_to_message_id=args[0].effective_message.message_id,
-                    text=f"\\[`ERROR`\\] Couldn't send message, try again later\\.",
-                )
-                return
+                log.warning("Exception occured: %s.", ex)
+                time.sleep(5)
+            finally:
+                tries += 1
+        else:
+            return args[0].effective_message.reply_markdown_v2(
+                reply_to_message_id=args[0].effective_message.message_id,
+                text=f"\\[`ERROR`\\] Couldn't send message, try again later\\.",
+            )
 
     return handler
 
