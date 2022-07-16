@@ -738,17 +738,11 @@ def main() -> None:
     updater = Updater(os.environ["TOKEN"])
 
     # start bot
-    webhook = (
-        "https://"
-        + os.environ["APP_NAME"]
-        + ".herokuapp.com/"
-        + os.environ["TOKEN"]
-    )
     updater.start_webhook(
         listen="0.0.0.0",
         port=int(os.environ.get("PORT", "8443")),
         url_path=os.environ["TOKEN"],
-        webhook_url=webhook,
+        webhook_url=f"https://{os.environ['APP_NAME']}.herokuapp.com/{os.environ['TOKEN']}",
     )
     dispatcher = updater.dispatcher
 
