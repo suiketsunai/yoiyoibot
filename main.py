@@ -40,7 +40,7 @@ from telegram.ext import (
 )
 
 # bad request exception
-from telegram.error import BadRequest, RetryAfter
+from telegram.error import BadRequest, RetryAfter, TimedOut
 
 # telegram constants
 from telegram.constants import PARSEMODE_MARKDOWN_V2 as MDV2
@@ -101,6 +101,31 @@ _switch = {
 esc = partial(escape_markdown, version=2)
 
 
+def exception_handler(func):
+    def handler(*args, **kwargs):
+        while True:
+            try:
+                func(*args, **kwargs)
+            except RetryAfter as ex:
+                log.warning("Exception occured: %s.", ex)
+                time.sleep(ex.retry_after + 1)
+                continue
+            except TimedOut as ex:
+                log.error("Exception occured: %s.", ex)
+                time.sleep(5)
+                continue
+            except Exception as ex:
+                log.error("Exception occured: %s.", ex)
+                args[0].effective_message.reply_markdown_v2(
+                    reply_to_message_id=args[0].effective_message.message_id,
+                    text=f"\\[`ERROR`\\] Couldn't send message, try again later\\.",
+                )
+                break
+
+    return handler
+
+
+@exception_handler
 def send_reply(update: Update, text: str, **kwargs) -> Message:
     """Reply to current message
 
@@ -118,6 +143,7 @@ def send_reply(update: Update, text: str, **kwargs) -> Message:
     )
 
 
+@exception_handler
 def send_error(update: Update, text: str, **kwargs) -> Message:
     """Reply to current message with error
 
@@ -431,18 +457,9 @@ def get_text(update: Update):
     )
 
 
+@exception_handler
 def send_media_group(update: Update, context: CallbackContext, **kwargs):
-    while True:
-        try:
-            return context.bot.send_media_group(**kwargs)
-        except RetryAfter as ex:
-            log.warning("Exception occured: %s.", ex)
-            time.sleep(ex.retry_after + 1)
-            continue
-        except Exception as ex:
-            log.error("Exception occured: %s.", ex)
-            send_error(update, "Couldn't send message, try again later\\.")
-            return
+    return context.bot.send_media_group(**kwargs)
 
 
 def send_tw(
@@ -725,6 +742,7 @@ def echo(update: Update, context: CallbackContext) -> None:
                 send_tw(update, context, link, chat)
             case _:
                 send_reply(update, esc(link.link))
+        time.sleep(5)
 
 
 ################################################################################
