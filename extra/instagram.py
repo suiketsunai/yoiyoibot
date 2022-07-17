@@ -1,4 +1,5 @@
 """Instagram module"""
+import time
 import logging
 
 # http requests
@@ -32,30 +33,35 @@ def get_instagram_links(link: str) -> list[InstaMedia]:
     s = requests.session()
     s.get(url=base, headers=fake_headers)
     log.debug(s.cookies.get_dict())
-    try:
-        response = s.post(
-            url=api,
-            headers={
-                **fake_headers,
-                "Content-Type": "application/json;charset=utf-8",
-                "X-XSRF-TOKEN": requests.utils.unquote(s.cookies["XSRF-TOKEN"]),
-            },
-            json={
-                "link": f"{link}/",
-            },
-            allow_redirects=True,
-            timeout=5,
-        )
-    except requests.exceptions.Timeout:
-        log.error("Read timed out.")
-        return None
-    r = response.json()["data"]
-    if r["status"] == 1:
-        if r["type"] == "GraphSidecar":
-            items = r["items"]
-        else:
-            items = [r]
-        results = []
+    # get response
+    tries, max_tries, response, results = 1, 3, None, []
+    while tries <= max_tries:
+        if tries > 1:
+            log.info("Retrying (%d try)...", tries)
+        try:
+            response = s.post(
+                url=api,
+                headers={
+                    **fake_headers,
+                    "Content-Type": "application/json;charset=utf-8",
+                    "X-XSRF-TOKEN": requests.utils.unquote(
+                        s.cookies["XSRF-TOKEN"]
+                    ),
+                },
+                json={
+                    "link": f"{link}/",
+                },
+                allow_redirects=True,
+                timeout=5,
+            )
+            break
+        except requests.exceptions.Timeout:
+            log.warning("Read timed out.")
+            time.sleep(5)
+        finally:
+            tries += 1
+    if response and (r := response.json()["data"]) and r["status"] == 1:
+        items = r["items"] if r["type"] == "GraphSidecar" else [r]
         for item in items:
             if "video" in item:
                 _type = "video"
@@ -65,5 +71,4 @@ def get_instagram_links(link: str) -> list[InstaMedia]:
                 _link = item["image"]["photos"][2]["url"]
             _prev = item[_type]["display_url"]
             results.append(InstaMedia(link, _prev, _link, _type))
-        return results
-    return None
+    return results
