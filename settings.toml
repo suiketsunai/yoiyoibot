@@ -4,7 +4,7 @@
 # see logging levels
 level = "INFO"
 # see formatting settings
-form = "%(name)s [%(levelname)s]: %(message)s"
+form = "[%(levelname)s] > %(name)s: %(message)s"
 
 [log.sqlalchemy.engine]
 # SQL echoing
@@ -32,7 +32,7 @@ enable = true
 # see logging levels
 level = "INFO"
 # see formatting settings
-form = "%(asctime)s > %(name)s [%(levelname)s]: %(message)s"
+form = "%(asctime)s [%(levelname)s] > %(name)s: %(message)s"
 # date format
 date = "%Y-%m-%d.%H-%M-%S"
 # folder path
