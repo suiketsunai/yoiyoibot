@@ -436,22 +436,28 @@ IMAGE_LIMIT = 2560
 def to_png(image: bytes, filename: str = "temp") -> bytes:
     # check extension
     file_ext = magic.from_buffer(image, mime=True).split("/")[1]
-    log.info(f"Image extension: %s.", file_ext)
+    log.info("Convert To PNG: Image extension: %s.", file_ext)
     # failed case
     if file_ext == "xml":
-        log.info("XML: %r.", image.decode('utf-8'))
+        log.info("Convert To PNG: XML: %r.", image.decode("utf-8"))
     # convert if needed
     if file_ext != "png":
         # save as file
         file = file_dir / f"{filename}.{file_ext}"
         file.write_bytes(image)
-        log.debug("Fitting into %d x %d size...", IMAGE_LIMIT, IMAGE_LIMIT)
         try:
             image = Image.open(file)
+            log.info("Convert To PNG: Original size: %d x %d.", *image.size)
+            log.debug(
+                "Convert To PNG: Fitting into %d x %d size...",
+                IMAGE_LIMIT,
+                IMAGE_LIMIT,
+            )
             image.thumbnail([IMAGE_LIMIT, IMAGE_LIMIT])
+            log.debug("Convert To PNG: New size: %d x %d.", *image.size)
             image.save(file, format="png", optimize=True)
         except Exception as ex:
-            log.error("Exception occured: %s.", ex)
+            log.error("Convert To PNG: Exception occured: %s.", ex)
         image = file.read_bytes()
         file.unlink()
     return image
@@ -522,7 +528,7 @@ def send_tw(
                     magic.from_buffer(file.content, mime=True).split("/")[1],
                 )
                 log.debug("Send Twitter: Filename: %r.", filename)
-                log.info(
+                log.debug(
                     "Send Twitter: File extension: %s.",
                     magic.from_buffer(file.content),
                 )
@@ -546,28 +552,31 @@ def send_tw(
             if chat.type == "private":
                 mes.chat.send_action(ChatAction.UPLOAD_PHOTO)
             # send photo group
-            post = send_media_group(update, context, **reply, media=photos)
+            if post := send_media_group(update, context, **reply, media=photos):
+                log.info("Send Twitter: Sent media group.")
             # send document group
             if chat.tw_orig and post:
                 # documents[-1].caption = info
                 log.info("Send Twitter: Sending document group...")
-                send_media_group(
+                if send_media_group(
                     update,
                     context,
                     chat_id=mes.chat_id,
                     reply_to_message_id=post[0].message_id,
                     media=documents,
-                )
+                ):
+                    log.info("Send Twitter: Sent document group.")
         else:
             # send video and gifs as is
             log.info("Send Twitter: Sending media as is...")
             for media in media.links:
-                context.bot.send_document(
+                if context.bot.send_document(
                     **reply,
                     caption=info,
                     document=media,
                     parse_mode=MDV2,
-                )
+                ):
+                    log.info("Send Twitter: Sent media.")
         return
     else:
         text = (
@@ -609,13 +618,13 @@ def send_tt(
             )
             # check extension
             file_ext = magic.from_buffer(vid.content, mime=True).split("/")[1]
-            log.info("Send Tiktok: File extension: %s.", file_ext)
             # save as file
             filename = f"{video.id}-{mes.chat_id}.{file_ext}"
             file = file_dir / filename
             file.write_bytes(vid.content)
             # convert if needed
             if file_ext != "mp4":
+                log.warning("Send Tiktok: File extension: %s.", file_ext)
                 mp4 = file_dir / f"{video.id}.mp4"
                 log.info("Send Tiktok: Converting...")
                 ffmpeg.input(str(file)).output(str(mp4)).run()
@@ -628,11 +637,12 @@ def send_tt(
                 mes.chat.send_action(ChatAction.UPLOAD_VIDEO)
             # upload
             log.info("Send Tiktok: Sending video...")
-            context.bot.send_video(
+            if context.bot.send_video(
                 **reply,
                 caption=info,
                 filename=f"{video.id}.mp4",
-            )
+            ):
+                log.info("Send Tiktok: Sent video.")
             # delete
             file.unlink()
             return
@@ -684,7 +694,7 @@ def send_in(
                     magic.from_buffer(file.content, mime=True).split("/")[1],
                 )
                 log.debug("Send Instagram: Filename: %r.", filename)
-                log.info(
+                log.debug(
                     "Send Instagram: File extension: %s.",
                     magic.from_buffer(file.content),
                 )
@@ -705,18 +715,20 @@ def send_in(
         files[0].caption = info
         log.info("Send Instagram: Sending media group...")
         # send file group
-        post = send_media_group(update, context, **reply, media=files)
+        if post := send_media_group(update, context, **reply, media=files):
+            log.info("Send Instagram: Sent media group.")
         # send document group
         if chat.in_orig and documents and post:
             # documents[-1].caption = info
             log.info("Send Instagram: Sending document group...")
-            send_media_group(
+            if send_media_group(
                 update,
                 context,
                 chat_id=mes.chat_id,
                 reply_to_message_id=post[0].message_id,
                 media=documents,
-            )
+            ):
+                log.info("Send Instagram: Sent document group.")
         return
     # if no links returned
     else:
