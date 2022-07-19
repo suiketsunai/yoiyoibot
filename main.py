@@ -430,7 +430,10 @@ def inliner(update: Update, context: CallbackContext) -> None:
 ################################################################################
 
 # max image side length
-IMAGE_LIMIT = 2560
+IM_MAX = (2560, 2560)
+
+# shrinked max image side length
+IM_SHR = (2240, 2240)
 
 
 def to_png(image: bytes, filename: str = "temp") -> bytes:
@@ -446,16 +449,20 @@ def to_png(image: bytes, filename: str = "temp") -> bytes:
         file = file_dir / f"{filename}.{file_ext}"
         file.write_bytes(image)
         try:
-            image = Image.open(file)
-            log.info("Convert To PNG: Original size: %d x %d.", *image.size)
-            log.debug(
-                "Convert To PNG: Fitting into %d x %d size...",
-                IMAGE_LIMIT,
-                IMAGE_LIMIT,
-            )
-            image.thumbnail([IMAGE_LIMIT, IMAGE_LIMIT])
-            log.debug("Convert To PNG: New size: %d x %d.", *image.size)
-            image.save(file, format="png", optimize=True)
+            _image = Image.open(file)
+            log.info("Convert To PNG: Original size: %d x %d.", *_image.size)
+            log.debug("Convert To PNG: Fitting into %d x %d...", *IM_MAX)
+            _image.thumbnail(IM_MAX)
+            log.debug("Convert To PNG: New size: %d x %d.", *_image.size)
+            _image.save(file, format="png", optimize=True)
+            if file.stat().st_size > 10 << 20:
+                log.warning("Convert To PNG: File was bigger 10 MB.")
+                file.write_bytes(image)
+                _image = Image.open(file)
+                log.debug("Convert To PNG: Fitting into %d x %d...", *IM_SHR)
+                _image.thumbnail(IM_SHR)
+                log.debug("Convert To PNG: New size: %d x %d.", *image.size)
+                _image.save(file, format="png", optimize=True)
         except Exception as ex:
             log.error("Convert To PNG: Exception occured: %s.", ex)
         image = file.read_bytes()
