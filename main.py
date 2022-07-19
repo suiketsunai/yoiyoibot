@@ -449,20 +449,20 @@ def to_png(image: bytes, filename: str = "temp") -> bytes:
         file = file_dir / f"{filename}.{file_ext}"
         file.write_bytes(image)
         try:
-            _image = Image.open(file)
-            log.info("Convert To PNG: Original size: %d x %d.", *_image.size)
+            im = Image.open(file)
+            log.info("Convert To PNG: Original size: %d x %d.", *im.size)
             log.debug("Convert To PNG: Fitting into %d x %d...", *IM_MAX)
-            _image.thumbnail(IM_MAX)
-            log.debug("Convert To PNG: New size: %d x %d.", *_image.size)
-            _image.save(file, format="png", optimize=True)
-            if file.stat().st_size > 10 << 20:
-                log.warning("Convert To PNG: File was bigger 10 MB.")
+            im.thumbnail(IM_MAX)
+            log.debug("Convert To PNG: New size: %d x %d.", *im.size)
+            im.save(file, format="png", optimize=True)
+            if (size := file.stat().st_size) > 10 << 20:
+                log.warning("Convert To PNG: File is bigger 10 MB: %d.", size)
                 file.write_bytes(image)
-                _image = Image.open(file)
+                im = Image.open(file)
                 log.debug("Convert To PNG: Fitting into %d x %d...", *IM_SHR)
-                _image.thumbnail(IM_SHR)
-                log.debug("Convert To PNG: New size: %d x %d.", *image.size)
-                _image.save(file, format="png", optimize=True)
+                im.thumbnail(IM_SHR)
+                log.debug("Convert To PNG: New size: %d x %d.", *im.size)
+                im.save(file, format="png", optimize=True)
         except Exception as ex:
             log.error("Convert To PNG: Exception occured: %s.", ex)
         image = file.read_bytes()
