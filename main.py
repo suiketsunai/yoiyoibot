@@ -819,7 +819,13 @@ def main() -> None:
 
     # add echo command
     dispatcher.add_handler(
-        MessageHandler(~Filters.command, echo, run_async=True)
+        MessageHandler(
+            ~Filters.command
+            & ~Filters.update.edited_message
+            & ~Filters.update.edited_channel_post,
+            echo,
+            run_async=True,
+        )
     )
 
     # stop the bot
