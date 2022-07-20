@@ -31,13 +31,13 @@ def upload_log() -> None:
             log.info("Waiting for %d seconds...", UPLOAD_TIMEOUT)
             time.sleep(UPLOAD_TIMEOUT)
             log.info("Done. Current attempt: #%d.", attempt + 1)
-        log.info("Uploading log file %r...", file.name)
-        r = requests.post(
-            url=link,
-            params={"name": file.name},
-            data=base64.urlsafe_b64encode(file.read_bytes()),
-        )
         try:
+            log.info("Uploading log file %r...", file.name)
+            r = requests.post(
+                url=link,
+                params={"name": file.name},
+                data=base64.urlsafe_b64encode(file.read_bytes()),
+            )
             if r.json()["ok"]:
                 log.info("Done uploading log file %r.", file.name)
             else:
