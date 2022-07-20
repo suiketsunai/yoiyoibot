@@ -454,7 +454,7 @@ def to_png(image: bytes, filename: str = "temp") -> bytes:
             log.debug("Convert To PNG: Fitting into %d x %d...", *IM_MAX)
             im.thumbnail(IM_MAX)
             log.debug("Convert To PNG: New size: %d x %d.", *im.size)
-            im.save(file, format="png", optimize=True)
+            im.save(file, format="webp", lossless=True, optimize=True)
             if (size := file.stat().st_size) > 10 << 20:
                 log.warning("Convert To PNG: File is bigger 10 MB: %d.", size)
                 file.write_bytes(image)
@@ -462,7 +462,7 @@ def to_png(image: bytes, filename: str = "temp") -> bytes:
                 log.debug("Convert To PNG: Fitting into %d x %d...", *IM_SHR)
                 im.thumbnail(IM_SHR)
                 log.debug("Convert To PNG: New size: %d x %d.", *im.size)
-                im.save(file, format="png", optimize=True)
+                im.save(file, format="webp", lossless=True, optimize=True)
         except Exception as ex:
             log.error("Convert To PNG: Exception occured: %s.", ex)
         image = file.read_bytes()
