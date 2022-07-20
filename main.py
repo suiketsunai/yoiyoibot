@@ -422,7 +422,10 @@ def inliner(update: Update, context: CallbackContext) -> None:
                 input_message_content=in_text(text),
             )
         )
-    context.bot.answer_inline_query(update.inline_query.id, results)
+    try:
+        context.bot.answer_inline_query(update.inline_query.id, results)
+    except BadRequest as ex:
+        log.error("Inline: Exception occured: %s.", ex)
 
 
 ################################################################################
