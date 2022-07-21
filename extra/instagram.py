@@ -57,12 +57,13 @@ def get_instagram_links(link: str) -> list[InstaMedia]:
         finally:
             tries += 1
     if response:
-        log.info("Response: %r.", response.content)
+        log.debug("Response: %r.", response.content)
         try:
             r = json.loads(response.json())
         except json.decoder.JSONDecodeError as ex:
-            log.error("Couldn't decode as json.")
+            log.error("Exception occured: %r.", ex)
             return results
+        log.debug("JSON: %r.", r)
         for key, items in r.items():
             for item in items:
                 results.append(
