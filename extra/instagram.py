@@ -1,5 +1,6 @@
 """Instagram module"""
 import time
+import json
 import logging
 
 # http requests
@@ -28,47 +29,48 @@ def get_instagram_links(link: str) -> list[InstaMedia]:
     Returns:
         InstaMedia: media of instagram post
     """
-    base = "https://sssinstagram.com/"
-    api = f"{base}request"
-    s = requests.session()
-    s.get(url=base, headers=fake_headers)
-    log.debug(s.cookies.get_dict())
+    base = "https://instadownloader.co/"
+    api = f"{base}instagram_post_data.php"
     # get response
     tries, max_tries, response, results = 1, 3, None, []
     while tries <= max_tries:
         if tries > 1:
             log.info("Retrying (%d try)...", tries)
         try:
-            response = s.post(
+            response = requests.post(
                 url=api,
                 headers={
                     **fake_headers,
-                    "Content-Type": "application/json;charset=utf-8",
-                    "X-XSRF-TOKEN": requests.utils.unquote(
-                        s.cookies["XSRF-TOKEN"]
-                    ),
+                    "Referer": base,
                 },
-                json={
-                    "link": f"{link}/",
+                params={
+                    "path": "/",
+                    "url": f"{link}/",
                 },
                 allow_redirects=True,
-                timeout=5,
+                timeout=10,
             )
             break
         except requests.exceptions.Timeout:
             log.warning("Read timed out.")
-            time.sleep(5)
+            time.sleep(10)
         finally:
             tries += 1
-    if response and (r := response.json()["data"]) and r["status"] == 1:
-        items = r["items"] if r["type"] == "GraphSidecar" else [r]
-        for item in items:
-            if "video" in item:
-                _type = "video"
-                _link = item["video"]["video_url"]
-            else:
-                _type = "image"
-                _link = item["image"]["photos"][2]["url"]
-            _prev = item[_type]["display_url"]
-            results.append(InstaMedia(link, _prev, _link, _type))
+    if response:
+        log.info("Response: %r.", response.content)
+        try:
+            r = json.loads(response.json())
+        except json.decoder.JSONDecodeError as ex:
+            log.error("Couldn't decode as json.")
+            return results
+        for key, items in r.items():
+            for item in items:
+                results.append(
+                    InstaMedia(
+                        link,
+                        item["thumbnail"],
+                        item["url"],
+                        key[:5],
+                    )
+                )
     return results
