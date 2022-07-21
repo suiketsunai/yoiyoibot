@@ -220,8 +220,8 @@ def get_tiktok_links(link: str) -> TikTokVideo:
         TikTokVideo: tiktok video namedtuple
     """
     if not (ttv := get_tikmate_links(link)):
-        log.debug("Trying another API: LoveTik...")
+        log.warning("Trying another API: LoveTik...")
         if not (ttv := get_lovetik_links(link)):
-            log.debug("Couldn't get tiktok.")
+            log.warning("Couldn't get tiktok.")
             return None
     return ttv

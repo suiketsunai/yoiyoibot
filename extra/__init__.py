@@ -114,7 +114,6 @@ link_dict = {
             (?:.+\/)
             (?P<id>\w+)\.
             (?P<ext>\w{3,4})
-            (?:\?)
         )
         """,
         "link": "https://instagram.com/p/{id}",

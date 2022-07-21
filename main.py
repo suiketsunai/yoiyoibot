@@ -538,10 +538,6 @@ def send_tw(
                     magic.from_buffer(file.content, mime=True).split("/")[1],
                 )
                 log.debug("Send Twitter: Filename: %r.", filename)
-                log.debug(
-                    "Send Twitter: File extension: %s.",
-                    magic.from_buffer(file.content),
-                )
                 photos.append(
                     InputMediaPhoto(
                         to_png(image=file.content, filename=filename)
@@ -696,18 +692,14 @@ def send_in(
                 allow_redirects=True,
             )
             log.debug("Send Instagram: Adding content to collection...")
+            filename = "{}.{}".format(
+                re.search(link_dict["instagram"]["file"], item.link)["id"],
+                magic.from_buffer(file.content, mime=True).split("/")[1],
+            )
+            log.debug("Send Instagram: Filename: %r.", filename)
             if item.type == "image":
                 if chat.type == "private":
                     mes.chat.send_action(ChatAction.UPLOAD_PHOTO)
-                filename = "{}.{}".format(
-                    re.search(link_dict["instagram"]["file"], item.link)["id"],
-                    magic.from_buffer(file.content, mime=True).split("/")[1],
-                )
-                log.debug("Send Instagram: Filename: %r.", filename)
-                log.debug(
-                    "Send Instagram: File extension: %s.",
-                    magic.from_buffer(file.content),
-                )
                 files.append(InputMediaPhoto(to_png(file.content, filename)))
                 documents.append(
                     InputMediaDocument(
@@ -719,7 +711,12 @@ def send_in(
             if item.type == "video":
                 if chat.type == "private":
                     mes.chat.send_action(ChatAction.UPLOAD_VIDEO)
-                files.append(InputMediaVideo(file.content))
+                files.append(
+                    InputMediaVideo(
+                        media=file.content,
+                        filename=filename,
+                    )
+                )
         log.debug("Send Instagram: Finished adding to collection.")
         log.debug("Send Instagram: Changing caption to: %r.", info)
         files[0].caption = info
