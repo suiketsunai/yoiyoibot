@@ -113,24 +113,25 @@ def get_twitter_links(tid: int | str) -> TwitterMedia:
         return log.error("%s: %s", error[0]["title"], error[0]["detail"])
     if not (media := res.includes.get("media", None)):
         return log.error("Exception occured: No media.")
-    user, kind = res.includes["users"][0], media[0].type
+    user, kind, data = res.includes["users"][0], media[0].type, res.data
     if kind == "photo":
         links = get_twitter_media(tid, kind, [e.url for e in media])
     else:
         links = get_twitter_media(tid, kind)
     if not links[0]:
         return log.error("Exception occured: No links.")
-    text, posttext = res.data.text.rsplit(
-        set(
-            url["url"]
-            for url in res.data.entities["urls"]
-            if url.get("media_key", None)
-        ).pop(),
+    text, posttext = data.text.rsplit(
+        next(
+            filter(
+                lambda x: x.get("media_key", False),
+                data.entities["urls"],
+            )
+        )["url"],
         1,
     )
     if len(posttext) > 0 and posttext[0] == " ":
         text = "\n\n".join([text, posttext[1:]])
-    for url in res.data.entities["urls"]:
+    for url in data.entities["urls"]:
         text = text.replace(url["url"], url["expanded_url"])
     return TwitterMedia(
         link_dict["twitter"]["link"].format(id=tid, author=user.username),
@@ -140,7 +141,7 @@ def get_twitter_links(tid: int | str) -> TwitterMedia:
         user.id,
         user.name,
         user.username,
-        res.data.created_at,
+        data.created_at,
         text.strip(),
         links[0],
         links[1],

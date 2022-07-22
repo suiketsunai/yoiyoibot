@@ -21,11 +21,12 @@ def get_file_size(link: str, session: requests.Session = None) -> int:
     """
     if not session:
         session = requests
-    r = session.head(
-        url=link,
-        headers=fake_headers,
-        allow_redirects=True,
-    )
-    if r.ok and (size := r.headers.get("Content-Length", None)):
-        return int(size)
+    if link:
+        r = session.head(
+            url=link,
+            headers=fake_headers,
+            allow_redirects=True,
+        )
+        if r.ok and (size := r.headers.get("Content-Length", None)):
+            return int(size)
     return 0

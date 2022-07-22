@@ -3,6 +3,8 @@ import time
 import json
 import logging
 
+from typing import Optional
+
 # http requests
 import requests
 
@@ -19,7 +21,7 @@ MAX_TRIES = 3
 TIMEOUT = 5
 
 
-def get_youtube_short_links(link: str):
+def get_youtube_short_links(link: str) -> Optional[YouTubeShortMedia]:
     base = "https://ytshorts.savetube.me/"
     api = "https://api.savetube.me/info"
     # get response
@@ -48,12 +50,15 @@ def get_youtube_short_links(link: str):
             log.info("JSON: %r.", r)
             if r["status"]:
                 data, videos = r["data"], r["data"]["video_formats"]
-                _link, _quality = videos[0]["url"], videos[0]["quality"]
-                _link_lq, _size_lq = None, 0
-                for video in data["video_formats"][1:]:
-                    if video["url"] and video["quality"] != _quality:
-                        _link_lq = video["url"]
-                        _size_lq = get_file_size(_link_lq)
+                _link = videos[0]["url"]
+                _link_lq = next(
+                    filter(
+                        lambda video: video["url"]
+                        and video["quality"] != videos[0]["quality"],
+                        data["video_formats"][1:],
+                    ),
+                    {},
+                ).get("url", None)
                 return YouTubeShortMedia(
                     link,
                     data["id"],
@@ -62,7 +67,7 @@ def get_youtube_short_links(link: str):
                     _link,
                     _link_lq,
                     get_file_size(_link),
-                    _size_lq,
+                    get_file_size(_link_lq),
                     data["duration"],
                 )
             else:
