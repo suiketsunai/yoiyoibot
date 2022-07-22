@@ -417,6 +417,36 @@ def inliner(update: Update, context: CallbackContext) -> None:
             else:
                 text = "This tiktok can't be found or downloaded."
             log.info("Inline: [#%02d] Error: %s.", in_id, text)
+        # send youtube short
+        elif in_link.type == LinkType.YOUTUBE_SHORT:
+            if video := get_youtube_short_links(in_link.link):
+                # check size
+                if 0 < video.size < 20 << 20:
+                    data["video_url"] = video.link
+                elif 0 < video.size_lq < 20 << 20:
+                    data["video_url"] = video.link_lq
+                # upload video if any
+                if data.get("video_url", None):
+                    data.update(
+                        {
+                            "mime_type": "video/mp4",
+                            "thumb_url": video.thumb,
+                        }
+                    )
+                    try:
+                        results.append(InlineQueryResultVideo(**data))
+                        log.info("Inline: [#%02d] Appended video.", in_id)
+                        continue
+                    # if telegram couldn't get file
+                    except BadRequest:
+                        text = "Telegram couldn't get the video."
+                # if file is too big
+                else:
+                    text = "Sorry, this file is too big\\!"
+            # if there is no video
+            else:
+                text = "This tiktok can't be found or downloaded."
+            log.info("Inline: [#%02d] Error: %s.", in_id, text)
         # send link if anything else
         else:
             text = in_link.link
@@ -775,7 +805,7 @@ def send_yts(
             reply["video"] = video.link
         elif 0 < video.size_lq < 50 << 20:
             reply["video"] = video.link_lq
-        #
+        # upload video if any
         if reply.get("video", None):
             # download
             vid = requests.get(
