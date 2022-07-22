@@ -442,7 +442,7 @@ def inliner(update: Update, context: CallbackContext) -> None:
                         text = "Telegram couldn't get the video."
                 # if file is too big
                 else:
-                    text = "Sorry, this file is too big\\!"
+                    text = "File is too big, send link to bot."
             # if there is no video
             else:
                 text = "This youtube short can't be found or downloaded."

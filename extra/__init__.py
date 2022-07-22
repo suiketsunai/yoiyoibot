@@ -130,7 +130,7 @@ link_dict = {
             (?:youtube\.com)\/
             (?:shorts)\/
         )
-        (?P<id>[\w]{11})
+        (?P<id>[\w\-]{11})
         """,
         "link": "https://www.youtube.com/shorts/{id}",
         "type": LinkType.YOUTUBE_SHORT,
