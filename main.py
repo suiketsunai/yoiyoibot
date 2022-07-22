@@ -445,7 +445,7 @@ def inliner(update: Update, context: CallbackContext) -> None:
                     text = "Sorry, this file is too big\\!"
             # if there is no video
             else:
-                text = "This tiktok can't be found or downloaded."
+                text = "This youtube short can't be found or downloaded."
             log.info("Inline: [#%02d] Error: %s.", in_id, text)
         # send link if anything else
         else:
