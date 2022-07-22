@@ -8,13 +8,15 @@ class LinkType:
         PIXIV,
         TIKTOK,
         INSTAGRAM,
-    ) = range(4)
+        YOUTUBE_SHORT,
+    ) = range(5)
 
     names = [
         "twitter",
         "pixiv",
         "tiktok",
         "instagram",
+        "youtube short",
     ]
 
     @classmethod
@@ -121,5 +123,16 @@ link_dict = {
         """,
         "link": "https://instagram.com/p/{id}",
         "type": LinkType.INSTAGRAM,
+    },
+    "youtube_short": {
+        "re": r"""(?x)
+        (?:
+            (?:youtube\.com)\/
+            (?:shorts)\/
+        )
+        (?P<id>[\w]{11})
+        """,
+        "link": "https://www.youtube.com/shorts/{id}",
+        "type": LinkType.YOUTUBE_SHORT,
     },
 }

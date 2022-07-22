@@ -78,6 +78,9 @@ from extra.tiktok import get_tiktok_links
 # import twitter api
 from extra.twitter import get_twitter_links
 
+# import youtube short
+from extra.youtube_short import get_youtube_short_links
+
 # import instagram api
 from extra.instagram import get_instagram_links
 
@@ -750,6 +753,79 @@ def send_in(
     send_error(update, text)
 
 
+def send_yts(
+    update: Update,
+    context: CallbackContext,
+    link: Link,
+    chat: Chat,
+) -> None:
+    notify(update, func="send_youtube_short")
+    # prepare data
+    mes = update.effective_message
+    reply = {
+        "reply_to_message_id": None if chat.include_link else mes.message_id,
+        "chat_id": mes.chat_id,
+    }
+    # get media
+    log.info("Send YouTube Short: Link: %s.", link.link)
+    if video := get_youtube_short_links(link.link):
+        info = video.source if chat.include_link else None
+        # check size
+        if 0 < video.size < 50 << 20:
+            reply["video"] = video.link
+        elif 0 < video.size_lq < 50 << 20:
+            reply["video"] = video.link_lq
+        #
+        if reply.get("video", None):
+            # download
+            vid = requests.get(
+                url=reply["video"],
+                headers=fake_headers,
+                allow_redirects=True,
+            )
+            # check extension
+            file_ext = magic.from_buffer(vid.content, mime=True).split("/")[1]
+            # save as file
+            filename = f"{video.id}-{mes.chat_id}.{file_ext}"
+            file = file_dir / filename
+            file.write_bytes(vid.content)
+            # convert if needed
+            if file_ext != "mp4":
+                log.warning("Send YouTube Short: File extension: %s.", file_ext)
+                mp4 = file_dir / f"{video.id}.mp4"
+                log.info("Send YouTube Short: Converting...")
+                ffmpeg.input(str(file)).output(str(mp4)).run()
+                reply["video"] = mp4.read_bytes()
+                mp4.unlink()
+            else:
+                reply["video"] = file.read_bytes()
+            # notify user
+            if chat.type == "private":
+                mes.chat.send_action(ChatAction.UPLOAD_VIDEO)
+            # upload
+            log.info("Send YouTube Short: Sending video...")
+            if context.bot.send_video(
+                **reply,
+                caption=info,
+                filename=f"{video.id}.mp4",
+            ):
+                log.info("Send YouTube Short: Sent video.")
+            # delete
+            file.unlink()
+            return
+        # if file is too big
+        else:
+            text = "Sorry, this file is too big\\!"
+    # if there is no video
+    else:
+        text = (
+            f"[This youtube content]({link.link}) can't be found or "
+            "downloaded\\. If this seems to be wrong, try again later\\."
+        )
+        log.error("Send YouTube Short: Couldn't get content.")
+    send_error(update, text)
+
+
 def echo(update: Update, context: CallbackContext) -> None:
     """Answers to user's links
 
@@ -764,16 +840,21 @@ def echo(update: Update, context: CallbackContext) -> None:
         return log.info("Echo: No text.")
     log.debug("Echo: Received text: %r.", text)
     chat = get_chat(update.effective_chat)
+    func = None
     for link in formatter(text):
         match link.type:
             case LinkType.INSTAGRAM:
-                send_in(update, context, link, chat)
+                func = send_in
             case LinkType.TIKTOK:
-                send_tt(update, context, link, chat)
+                func = send_tt
             case LinkType.TWITTER:
-                send_tw(update, context, link, chat)
+                func = send_tw
+            case LinkType.YOUTUBE_SHORT:
+                func = send_yts
             case _:
                 send_reply(update, esc(link.link))
+                continue
+        func(update, context, link, chat)
         time.sleep(5)
 
 
