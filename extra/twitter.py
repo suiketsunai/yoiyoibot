@@ -15,7 +15,7 @@ from extra import link_dict
 # import fake headers
 from extra.helper import fake_headers
 
-# import ArtWorkMedia
+# import TwitterMedia
 from extra.namedtuples import TwitterMedia
 
 # get logger

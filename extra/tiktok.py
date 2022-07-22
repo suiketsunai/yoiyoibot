@@ -11,7 +11,7 @@ from extra import link_dict
 # import fake headers and getting file size function
 from extra.helper import fake_headers, get_file_size
 
-# import ArtWorkMedia
+# import TikTokVideo
 from extra.namedtuples import TikTokVideo
 
 # get logger

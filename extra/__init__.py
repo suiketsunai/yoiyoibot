@@ -1,3 +1,6 @@
+"""Extra module"""
+
+
 # link types
 class LinkType:
     types = (

@@ -125,7 +125,7 @@ def exception_handler(func):
         else:
             args[0].effective_message.reply_markdown_v2(
                 reply_to_message_id=args[0].effective_message.message_id,
-                text=f"\\[`ERROR`\\] Couldn't send message, try again later\\.",
+                text="\\[`ERROR`\\] Couldn't send message, try again later\\.",
             )
             return None
 
@@ -357,7 +357,10 @@ def command_tw_style(update: Update, _) -> None:
         case TwitterStyle.IMAGE_INFO_EMBED_LINK:
             style = f"\\[ `Image(s)` \\]\n\n[Author \\| @Username]({link})"
         case TwitterStyle.IMAGE_INFO_EMBED_LINK_DESC:
-            style = f"\\[ `Image(s)` \\]\n\n[Author \\| @Username]({link})\n\nDescription"
+            style = (
+                f"\\[ `Image(s)` \\]\n\n[Author \\| @Username]({link})\n\n"
+                "Description"
+            )
         case _:
             style = "Unknown"
     send_reply(update, f"_Twitter style has been changed to_\\:\n\n{style}")
@@ -484,7 +487,7 @@ def get_text(update: Update):
 
 
 @exception_handler
-def send_media_group(update: Update, context: CallbackContext, **kwargs):
+def send_media_group(_: Update, context: CallbackContext, **kwargs):
     return context.bot.send_media_group(**kwargs)
 
 

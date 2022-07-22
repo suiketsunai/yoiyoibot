@@ -13,6 +13,9 @@ from alembic import context
 # working with env
 from dotenv import load_dotenv
 
+# import Base
+from db.models import Base
+
 # get parent directory
 parent_dir = os.path.abspath(os.getcwd())
 sys.path.append(parent_dir)
@@ -34,8 +37,6 @@ config.set_main_option(
     "sqlalchemy.url",
     os.environ["DATABASE_URL"].replace("postgres://", "postgresql://"),
 )
-
-from db import Base
 
 # add your model's MetaData object here
 # for 'autogenerate' support
