@@ -10,6 +10,6 @@ from sqlalchemy import create_engine
 load_dotenv()
 
 engine = create_engine(
-    os.environ["DATABASE_URL"].replace("postgres://", "postgresql://"),
+    os.environ["DATABASE_URI"].replace("postgres://", "postgresql://"),
     future=True,
 )
