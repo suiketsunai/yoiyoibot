@@ -382,7 +382,7 @@ def inliner(update: Update, context: CallbackContext) -> None:
     results = []
     for in_id, in_link in enumerate(links, 1):
         log.info(
-            "Inline: [#%02d] Received %s link: %s.",
+            "Inline: [#%02d] Received %s link: %r.",
             in_id,
             LinkType.getType(in_link.type),
             in_link.link,
@@ -538,7 +538,7 @@ def send_tw(
         "chat_id": mes.chat_id,
     }
     # get media
-    log.info("Send Twitter: Link: %s.", link.link)
+    log.info("Send Twitter: Link: %r.", link.link)
     if media := get_twitter_links(link.id):
         log.debug("Send Twitter: Media info: %r.", media)
         info = None
@@ -643,7 +643,7 @@ def send_tt(
         "chat_id": mes.chat_id,
     }
     # get media
-    log.info("Send Tiktok: Link: %s.", link.link)
+    log.info("Send Tiktok: Link: %r.", link.link)
     if video := get_tiktok_links(link.link):
         info = video.source if chat.include_link else None
         # check size
@@ -715,12 +715,12 @@ def send_in(
         "chat_id": mes.chat_id,
     }
     # get media
-    log.info("Send Instagram: Link: %s.", link.link)
+    log.info("Send Instagram: Link: %r.", link.link)
     if media := get_instagram_links(link.link):
         files, documents = [], []
         info = media[0].source if chat.include_link else None
         for item in media:
-            log.debug("Send Instagram: Link: %s.", item.link)
+            log.debug("Send Instagram: Link: %r.", item.link)
             log.debug("Send Instagram: Downloading...")
             file = requests.get(
                 item.link,
@@ -797,7 +797,7 @@ def send_yts(
         "chat_id": mes.chat_id,
     }
     # get media
-    log.info("Send YouTube Short: Link: %s.", link.link)
+    log.info("Send YouTube Short: Link: %r.", link.link)
     if video := get_youtube_short_links(link.link):
         info = video.source if chat.include_link else None
         # check size

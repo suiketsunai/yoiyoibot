@@ -189,11 +189,11 @@ def get_instagram_links(link: str) -> list[InstaMedia]:
     Returns:
         InstaMedia: media of instagram post
     """
-    if not (ttv := get_instadownloader_links(link)):  # best
+    if not (im := get_instadownloader_links(link)):  # best
         log.warning("Trying another API: InstagramDownloads...")
-        if not (ttv := get_instagramdownloads_links(link)):  # best info
+        if not (im := get_instagramdownloads_links(link)):  # best info
             log.warning("Trying another API: SSSGram...")
-            if not (ttv := get_sssgram_links(link)):  # okay
+            if not (im := get_sssgram_links(link)):  # okay
                 log.warning("Couldn't get instagram content.")
                 return []
-    return ttv
+    return im
