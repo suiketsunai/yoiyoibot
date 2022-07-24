@@ -70,7 +70,6 @@ def get_ytshorts_links(link: str) -> Optional[YouTubeShortMedia]:
 def get_ssyoutube_links(link: str) -> Optional[YouTubeShortMedia]:
     base = "https://ssyoutube.com/en6/"
     api = "https://ssyoutube.com/api/convert"
-    link = "https://www.youtube.com/shorts/ckUx9TCpDBU"
     # get cookies
     s = requests.session()
     s.get(url=base, headers=fake_headers)
