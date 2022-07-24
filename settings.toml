@@ -4,7 +4,7 @@
 # see logging levels
 level = "INFO"
 # see formatting settings
-form = "[%(levelname)s] > %(name)s: %(message)s"
+form = "%(asctime)s [%(levelname)s] > %(name)s: %(message)s"
 
 [log.sqlalchemy.engine]
 # SQL echoing

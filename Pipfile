@@ -13,13 +13,15 @@ psycopg2 = "*"
 python-telegram-bot = "*"
 tweepy = "*"
 requests = "*"
-python-magic = "*"
+python-magic-bin = "*"
 setuptools = "*"
 ffmpeg-python = "*"
 pillow = "*"
 
 [dev-packages]
 black = "*"
+flake8 = "*"
+pylint = "*"
 
 [requires]
 python_version = "3.10"
