@@ -896,14 +896,12 @@ def echo(update: Update, context: CallbackContext) -> None:
 def main() -> None:
     """Set up and run the bot"""
     # create updater & dispatcher
-    updater = Updater(os.environ["TOKEN"])
-
-    # start bot
-    updater.start_webhook(
-        listen="0.0.0.0",
-        port=int(os.environ.get("PORT", "8443")),
-        url_path=os.environ["TOKEN"],
-        webhook_url=f"https://{os.environ['APP_NAME']}.herokuapp.com/{os.environ['TOKEN']}",
+    updater = Updater(
+        os.environ["TOKEN"],
+        request_kwargs={
+            "read_timeout": 6,
+            "connect_timeout": 7,
+        },
     )
     dispatcher = updater.dispatcher
 
@@ -941,6 +939,9 @@ def main() -> None:
             run_async=True,
         )
     )
+
+    # start the bot
+    updater.start_polling()
 
     # stop the bot
     updater.idle()
